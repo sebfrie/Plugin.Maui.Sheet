@@ -37,6 +37,8 @@ dotnet add package Plugin.Maui.Sheet
 | Android | API 24 |
 | Windows | 10 version 1809 (10.0.17763) |
 
+These are the oldest OS versions the package runs on. The frameworks NuGet lists (e.g. `net11.0-android37.0`) name the platform SDK the package is compiled against, the .NET 11 default, which any `net11.0-android`/`-ios`/`-windows` app matches; they are not minimums.
+
 ## Setup
 
 ```csharp

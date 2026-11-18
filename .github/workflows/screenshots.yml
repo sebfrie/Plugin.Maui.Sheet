@@ -13,11 +13,11 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: microsoft
           java-version: '21'
@@ -42,7 +42,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: bash .github/scripts/screenshots-android.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots-android
@@ -53,10 +53,10 @@ jobs:
     # .NET for iOS 27.2 needs Xcode 27.2, which is on GitHub's Xcode 27 image (macOS 27).
     runs-on: xcode-27
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Select newest Xcode
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Install workloads
@@ -66,7 +66,7 @@ jobs:
         run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
       - name: Screenshots
         run: bash .github/scripts/screenshots-ios.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots-ios
@@ -76,8 +76,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Install workloads
@@ -88,7 +88,7 @@ jobs:
       - name: Screenshots
         shell: pwsh
         run: ./.github/scripts/screenshots-windows.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots-windows
@@ -102,8 +102,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: screenshots-*
           path: screenshots
