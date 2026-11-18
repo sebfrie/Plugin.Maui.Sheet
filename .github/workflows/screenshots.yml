@@ -58,8 +58,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Install workload
-        run: dotnet workload install maui-ios
+      - name: Install workloads
+        # Restore covers every target of the sample, Android included.
+        run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
         run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
       - name: Screenshots
@@ -78,8 +79,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Install workload
-        run: dotnet workload install maui-windows
+      - name: Install workloads
+        run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
         # Self-contained Windows App SDK: the runner has no Windows App SDK runtime installed.
         run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:WindowsAppSDKSelfContained=true

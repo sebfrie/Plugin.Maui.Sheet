@@ -47,7 +47,8 @@ public partial class NativeSheetHandler
 		}
 
 		root = new LinearLayout(activity) { Orientation = Android.Widget.Orientation.Vertical };
-		toolbar = new MaterialToolbar(activity);
+		// MAUI's theme makes action text white for its coloured navigation bar; the sheet is a surface.
+		toolbar = new MaterialToolbar(new ContextThemeWrapper(activity, Resource.Style.ThemeOverlay_MaterialComponents_Toolbar_Surface));
 		toolbar.MenuItemClick += OnMenuItemClick;
 		toolbar.NavigationClick += OnNavigationClick;
 		root.AddView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent));
@@ -427,14 +428,12 @@ public partial class NativeSheetHandler
 			? height
 			: dialog.Context.Resources!.DisplayMetrics!.HeightPixels;
 
-	// MAUI's default theme is MaterialComponents; the Material 3 drag handle needs Material 3 colors.
-	static Context Material3Context(Context context)
-	{
-		if (context.Theme!.ResolveAttribute(Resource.Attribute.colorOnSurfaceVariant, new TypedValue(), true))
-			return context;
-		var night = (context.Resources!.Configuration!.UiMode & UiMode.NightMask) == UiMode.NightYes;
-		return new ContextThemeWrapper(context, night ? Resource.Style.ThemeOverlay_Material3_Dark : Resource.Style.ThemeOverlay_Material3_Light);
-	}
+	// The drag handle gets its icon and size only from the theme's bottomSheetDragHandleStyle, which Material 3
+	// themes define and MAUI's default MaterialComponents theme does not (the handle would be 0x0).
+	static Context Material3Context(Context context) =>
+		context.Theme!.ResolveAttribute(Resource.Attribute.bottomSheetDragHandleStyle, new TypedValue(), true)
+			? context
+			: new ContextThemeWrapper(context, Resource.Style.Theme_Material3_DayNight);
 
 	static Android.Graphics.Color ThemeColor(Context context, int attribute)
 	{
