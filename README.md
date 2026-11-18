@@ -118,4 +118,4 @@ public class OrdersViewModel(INativeSheetService sheets)
 
 ## Releasing to NuGet
 
-The [release workflow](.github/workflows/release-nuget.yml) packs and pushes when a tag like `v1.0.0` or `v1.0.0-preview1` is pushed (the tagged commit must be on `main`). Add a repository secret named `NUGET_API_KEY` with a nuget.org API key that may push `Plugin.Maui.Sheet`.
+The [release workflow](.github/workflows/release-nuget.yml) packs and pushes when a tag like `v1.0.0` or `v1.0.0-preview1` is pushed (the tagged commit must be on `main`). It uses nuget.org [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): no API key secret is stored; a nuget.org policy for this repository and `release-nuget.yml` lets the workflow obtain a short-lived key.

@@ -14,6 +14,10 @@ jobs:
   
     runs-on: windows-latest
 
+    permissions:
+      contents: read
+      id-token: write # lets NuGet/login trade GitHub's OIDC token for a short-lived nuget.org API key (Trusted Publishing)
+
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +40,10 @@ jobs:
           "version-without-v=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       - name: Pack
         run: dotnet pack src\Plugin.Maui.Sheet.sln -c Release -p:PackageVersion=${{ steps.get_version.outputs.version-without-v }}
+      - name: NuGet login (Trusted Publishing)
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: sebfrie # nuget.org profile name of the trusted publishing policy owner
       - name: Push
-        run: dotnet nuget push src\Plugin.Maui.Sheet\bin\Release\Plugin.Maui.Sheet.${{ steps.get_version.outputs.version-without-v }}.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push src\Plugin.Maui.Sheet\bin\Release\Plugin.Maui.Sheet.${{ steps.get_version.outputs.version-without-v }}.nupkg -s https://api.nuget.org/v3/index.json -k ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
