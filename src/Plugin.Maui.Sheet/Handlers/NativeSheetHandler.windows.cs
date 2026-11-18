@@ -5,14 +5,18 @@ using UIC = Microsoft.UI.Xaml.Controls;
 
 namespace Plugin.Maui.Sheet;
 
-// Windows has no bottom sheet. Like a sheet on Mac Catalyst, it is shown as a card centred over the window:
-// a light-dismiss Popup with a WinUI header. Detents only choose the card's height; there is no dragging or grabber.
+// Windows has no bottom sheet. Like a sheet on Mac Catalyst, it is shown as a card centred over the window, in a
+// Popup with a WinUI header over a dimmed backdrop. Clicking the backdrop or pressing Esc dismisses it. That light
+// dismiss is the handler's own: Popup.IsLightDismissEnabled also closes on window resize and deactivation (Alt+Tab)
+// and cannot be cancelled. Detents only choose the card's height; there is no dragging or grabber.
 public partial class NativeSheetHandler
 {
 	const double SheetMaxWidth = 540;
 	const double WindowMargin = 24;
 
 	UIC.Primitives.Popup? popup;
+	UIC.Grid? host;
+	UIC.Border? backdrop;
 	UIC.Border? card;
 	UIC.Grid? layout;
 	UIC.Grid? header;
@@ -24,7 +28,6 @@ public partial class NativeSheetHandler
 	UI.FrameworkElement? platformContent;
 	UI.XamlRoot? xamlRoot;
 	List<(SheetDetent Detent, double Height)> sorted = [];
-	bool isClosing;
 
 	/// <inheritdoc />
 	protected override UI.FrameworkElement CreatePlatformView() => new UIC.Border { IsHitTestVisible = false };
@@ -95,10 +98,16 @@ public partial class NativeSheetHandler
 			BorderBrush = ThemeResource<UI.Media.Brush>("SurfaceStrokeColorDefaultBrush"),
 			Shadow = new UI.Media.ThemeShadow(),
 			Translation = new Vector3(0, 0, 32),
+			HorizontalAlignment = UI.HorizontalAlignment.Center,
+			VerticalAlignment = UI.VerticalAlignment.Center,
 		};
-		card.SizeChanged += OnCardSizeChanged;
+		backdrop = new UIC.Border { Background = ThemeResource<UI.Media.Brush>("SmokeFillColorDefaultBrush") };
+		backdrop.Tapped += OnBackdropTapped;
+		// No background on the host itself: with the backdrop collapsed (pass-through), clicks reach the page.
+		host = new UIC.Grid { Children = { backdrop, card } };
+		host.KeyDown += OnHostKeyDown;
 
-		popup = new UIC.Primitives.Popup { XamlRoot = root, Child = card };
+		popup = new UIC.Primitives.Popup { XamlRoot = root, Child = host };
 		popup.Opened += OnPopupOpened;
 		popup.Closed += OnPopupClosed;
 		root.Changed += OnXamlRootChanged;
@@ -115,26 +124,40 @@ public partial class NativeSheetHandler
 
 	void Close()
 	{
-		if (popup is null || isClosing)
-			return;
-		isClosing = true;
-		popup.IsOpen = false;
+		if (popup is not null)
+			popup.IsOpen = false;
 	}
 
-	void OnPopupOpened(object? sender, object e) => VirtualView?.SendOpened(CurrentDetent());
+	void OnPopupOpened(object? sender, object e)
+	{
+		// Focus moves into the sheet, so Esc reaches it and keyboard users land on its first control.
+		if (card is not null && UI.Input.FocusManager.FindFirstFocusableElement(card) is UI.UIElement first)
+			first.Focus(UI.FocusState.Programmatic);
+		VirtualView?.SendOpened(CurrentDetent());
+	}
 
 	void OnPopupClosed(object? sender, object e)
 	{
 		if (!ReferenceEquals(sender, popup))
 			return;
-		// Light dismiss cannot be cancelled before it happens, so a vetoed dismissal reopens the popup.
-		if (!isClosing && VirtualView?.SendDismissAttempted() == true)
-		{
-			popup!.IsOpen = true;
-			return;
-		}
 		TearDown();
 		VirtualView?.SendDismissed();
+	}
+
+	void OnBackdropTapped(object sender, UI.Input.TappedRoutedEventArgs e) => LightDismiss();
+
+	void OnHostKeyDown(object sender, UI.Input.KeyRoutedEventArgs e)
+	{
+		if (e.Key != Windows.System.VirtualKey.Escape)
+			return;
+		e.Handled = true;
+		LightDismiss();
+	}
+
+	void LightDismiss()
+	{
+		if (VirtualView?.SendDismissAttempted() == false)
+			Close();
 	}
 
 	void TearDown()
@@ -145,7 +168,8 @@ public partial class NativeSheetHandler
 		popup.Closed -= OnPopupClosed;
 		if (xamlRoot is not null)
 			xamlRoot.Changed -= OnXamlRootChanged;
-		card!.SizeChanged -= OnCardSizeChanged;
+		backdrop!.Tapped -= OnBackdropTapped;
+		host!.KeyDown -= OnHostKeyDown;
 		closeButton!.Click -= OnCloseClick;
 		secondaryButton!.Click -= OnSecondaryClick;
 		primaryButton!.Click -= OnPrimaryClick;
@@ -156,6 +180,8 @@ public partial class NativeSheetHandler
 		VirtualView?.ReleaseTemplatedContent();
 
 		popup = null;
+		host = null;
+		backdrop = null;
 		card = null;
 		layout = null;
 		header = null;
@@ -167,7 +193,6 @@ public partial class NativeSheetHandler
 		platformContent = null;
 		xamlRoot = null;
 		sorted = [];
-		isClosing = false;
 	}
 
 	void UpdateContent()
@@ -189,8 +214,10 @@ public partial class NativeSheetHandler
 
 	void UpdateDetents()
 	{
-		if (card is null || xamlRoot is null)
+		if (host is null || card is null || xamlRoot is null)
 			return;
+		host.Width = xamlRoot.Size.Width;
+		host.Height = xamlRoot.Size.Height;
 		var width = Math.Min(SheetMaxWidth, Math.Max(0, xamlRoot.Size.Width - 2 * WindowMargin));
 		var maxHeight = Math.Max(0, xamlRoot.Size.Height - 2 * WindowMargin);
 		// Only orders FitContent among the other detents; the card itself sizes to its content natively.
@@ -204,7 +231,6 @@ public partial class NativeSheetHandler
 		card.MaxHeight = maxHeight;
 		card.Height = current.Kind == SheetDetentKind.FitContent ? double.NaN : current.Resolve(maxHeight, 0);
 		UpdatePassThroughInteraction();
-		UpdatePosition();
 	}
 
 	// No dragging on Windows: the sheet rests at the selected detent, or the smallest one.
@@ -213,25 +239,14 @@ public partial class NativeSheetHandler
 
 	void UpdateSelectedDetent() => UpdateDetents();
 
-	void UpdatePosition()
-	{
-		if (popup is null || card is null || xamlRoot is null)
-			return;
-		popup.HorizontalOffset = Math.Max(0, (xamlRoot.Size.Width - card.ActualWidth) / 2);
-		popup.VerticalOffset = Math.Max(0, (xamlRoot.Size.Height - card.ActualHeight) / 2);
-	}
-
-	void OnCardSizeChanged(object sender, UI.SizeChangedEventArgs e) => UpdatePosition();
-
 	void OnXamlRootChanged(UI.XamlRoot sender, UI.XamlRootChangedEventArgs e) => UpdateDetents();
 
 	void UpdatePassThroughInteraction()
 	{
-		if (popup is null)
+		if (backdrop is null)
 			return;
 		var passThrough = LargestUndimmed(VirtualView, sorted) is not null && CurrentDetent()?.Kind != SheetDetentKind.Large;
-		popup.IsLightDismissEnabled = !passThrough;
-		popup.LightDismissOverlayMode = passThrough ? UIC.LightDismissOverlayMode.Off : UIC.LightDismissOverlayMode.On;
+		backdrop.Visibility = passThrough ? UI.Visibility.Collapsed : UI.Visibility.Visible;
 	}
 
 	void UpdateBackground()
