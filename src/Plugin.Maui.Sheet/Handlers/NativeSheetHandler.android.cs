@@ -159,7 +159,8 @@ public partial class NativeSheetHandler
 			root.Measure(
 				AView.MeasureSpec.MakeMeasureSpec(width, MeasureSpecMode.Exactly),
 				AView.MeasureSpec.MakeMeasureSpec(parentHeight, MeasureSpecMode.AtMost));
-			contentHeight = root.MeasuredHeight;
+			// The sheet pads itself for the navigation bar (edge-to-edge); a fixed height must include that.
+			contentHeight = root.MeasuredHeight + sheetView.PaddingTop + sheetView.PaddingBottom;
 		}
 
 		var maxDp = Context.FromPixels(parentHeight);
