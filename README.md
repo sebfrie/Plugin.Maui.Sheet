@@ -129,7 +129,3 @@ await sheets.CloseSheetAsync("Apple");
 ## Sample
 
 [`samples/Plugin.Maui.Sheet.Sample`](samples/Plugin.Maui.Sheet.Sample) shows a `FitContent` form with a primary action that enables once text is entered, a `Medium/Large` list with `SelectedDetent` binding, a non-dismissible pass-through sheet over a scrollable list, and a sheet opened from a view model through `INativeSheetService` that returns the user's pick.
-
-## Releasing to NuGet
-
-The [release workflow](.github/workflows/release-nuget.yml) packs and pushes when a tag like `v1.0.0` or `v1.0.0-preview1` is pushed (the tagged commit must be on `main`). It uses nuget.org [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): no API key secret is stored; a nuget.org policy for this repository and `release-nuget.yml` lets the workflow obtain a short-lived key.
