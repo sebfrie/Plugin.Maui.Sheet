@@ -11,16 +11,18 @@
 
 ## Screenshots
 
-The [sample app](samples/Plugin.Maui.Sheet.Sample), captured on an Android emulator, an iOS simulator and Windows by the [screenshot workflow](.github/workflows/screenshots.yml).
+The [sample app](samples/Plugin.Maui.Sheet.Sample), captured on an Android emulator, an iOS simulator and Windows by the [screenshot workflow](.github/workflows/screenshots.yml). Select a screenshot for the full-size image.
 
 | | FitContent form | Medium / Large list | Pass-through |
 |---|---|---|---|
-| **Android** | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-form.png" width="220" alt="Android: FitContent form with Cancel and Save" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-list.png" width="220" alt="Android: Medium / Large list" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-passthrough.png" width="220" alt="Android: Pass-through sheet over the page" /> |
-| **iOS** | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-form.png" width="220" alt="iOS: FitContent form with Cancel and Save" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-list.png" width="220" alt="iOS: Medium / Large list" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-passthrough.png" width="220" alt="iOS: Pass-through sheet over the page" /> |
+| **Android** | [![Android: FitContent form with Cancel and Save](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-form.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-form.png) | [![Android: Medium / Large list](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-list.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-list.png) | [![Android: Pass-through sheet over the page](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-passthrough.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-passthrough.png) |
+| **iOS** | [![iOS: FitContent form with Cancel and Save](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-form.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-form.png) | [![iOS: Medium / Large list](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-list.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-list.png) | [![iOS: Pass-through sheet over the page](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-passthrough.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-passthrough.png) |
 
-**Windows**
+**Windows** (cropped to the sheet, centred in the window)
 
-<img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-form.png" width="32%" alt="Windows: FitContent form with Cancel and Save" /> <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-list.png" width="32%" alt="Windows: Medium / Large list" /> <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-passthrough.png" width="32%" alt="Windows: Pass-through sheet over the page" />
+[![Windows: FitContent form with Cancel and Save](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-form.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-form.png)
+[![Windows: Medium / Large list](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-list.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-list.png)
+[![Windows: Pass-through sheet over the page](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-passthrough.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-passthrough.png)
 
 ## Install
 

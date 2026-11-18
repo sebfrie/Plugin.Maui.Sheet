@@ -19,7 +19,8 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: actions/setup-java@v6
         with:
-          distribution: microsoft
+          # Microsoft's OpenJDK reports a five-part version (21.0.13.0.2) that .NET for Android cannot parse (XA0033).
+          distribution: temurin
           java-version: '21'
       - name: Install workload and Android SDK packages
         run: |
@@ -108,6 +109,13 @@ jobs:
           pattern: screenshots-*
           path: screenshots
           merge-multiple: true
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Thumbnails for the README
+        run: |
+          pip install pillow
+          python .github/scripts/screenshot-thumbnails.py
       - name: Commit screenshots
         run: |
           git config user.name "github-actions[bot]"
