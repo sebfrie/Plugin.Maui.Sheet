@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 25.0.1704.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugin.Maui.Sheet", "Plugin.Maui.Sheet\Plugin.Maui.Sheet.csproj", "{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plugin.Maui.Sheet.Tests", "..\tests\Plugin.Maui.Sheet.Tests\Plugin.Maui.Sheet.Tests.csproj", "{51A9008C-D6A8-4269-8658-4B452B390A54}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|x64.Build.0 = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Debug|x86.Build.0 = Debug|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|x64.ActiveCfg = Release|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|x64.Build.0 = Release|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|x86.ActiveCfg = Release|Any CPU
+		{2012F564-B8C7-4CEB-8495-1BCB1B0EB638}.Release|x86.Build.0 = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|x64.Build.0 = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Debug|x86.Build.0 = Debug|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|x64.ActiveCfg = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|x64.Build.0 = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|x86.ActiveCfg = Release|Any CPU
+		{51A9008C-D6A8-4269-8658-4B452B390A54}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9C1A5250-4B63-4ABE-9E4A-65064808F863}
+	EndGlobalSection
+EndGlobal

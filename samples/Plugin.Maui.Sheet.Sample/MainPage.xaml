@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Plugin.Maui.Sheet.Sample"
+             xmlns:sheet="clr-namespace:Plugin.Maui.Sheet;assembly=Plugin.Maui.Sheet"
+             x:Class="Plugin.Maui.Sheet.Sample.MainPage"
+             x:DataType="local:MainViewModel"
+             Title="Native Sheet">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16,8" RowSpacing="8">
+
+        <FlexLayout Wrap="Wrap" JustifyContent="Start">
+            <Button Text="FitContent form" Command="{Binding OpenFormCommand}" Margin="0,0,8,8" />
+            <Button Text="Medium / Large list" Command="{Binding OpenListCommand}" Margin="0,0,8,8" />
+            <Button Text="Pass-through" Command="{Binding OpenPassThroughCommand}" Margin="0,0,8,8" />
+            <Button Text="MVVM service" Command="{Binding ShowServiceSheetCommand}" Margin="0,0,8,8" />
+        </FlexLayout>
+
+        <Label Grid.Row="1" Text="{Binding Status}" FontAttributes="Italic" />
+
+        <!-- The page content behind the sheets: still scrollable and tappable while the pass-through sheet is small. -->
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" SelectionMode="Single">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <Label Text="{Binding .}" Padding="0,12" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- 1. FitContent + dynamic primary action -->
+        <sheet:NativeSheet IsOpen="{Binding IsFormOpen}"
+                           Detents="FitContent"
+                           Title="New entry"
+                           Subtitle="Sized to its content"
+                           PrimaryActionText="Save"
+                           PrimaryActionCommand="{Binding SaveCommand}"
+                           IsPrimaryActionEnabled="{Binding CanSave}"
+                           SecondaryActionText="Cancel">
+            <VerticalStackLayout Padding="20" Spacing="12">
+                <Label Text="Save is enabled once you type a name." />
+                <Entry Placeholder="Name" Text="{Binding Name}" />
+            </VerticalStackLayout>
+        </sheet:NativeSheet>
+
+        <!-- 2. Medium / Large with a scrolling list that expands the sheet -->
+        <sheet:NativeSheet IsOpen="{Binding IsListOpen}"
+                           Detents="Medium, Large"
+                           SelectedDetent="{Binding ListDetent}"
+                           DetentChanged="OnListDetentChanged"
+                           Title="Medium / Large"
+                           ShowNativeCloseButton="True">
+            <Grid RowDefinitions="Auto,*">
+                <Button Text="Expand to Large" Command="{Binding ExpandListCommand}" Margin="16,8" />
+                <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Label Text="{Binding .}" Padding="16,12" />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </sheet:NativeSheet>
+
+        <!-- 3. Pass-through: the list behind stays interactive below Large -->
+        <sheet:NativeSheet IsOpen="{Binding IsPassThroughOpen}"
+                           Detents="Fraction:0.25, Medium, Large"
+                           PassThroughInteraction="True"
+                           IsDismissible="False"
+                           DismissAttempted="OnPassThroughDismissAttempted"
+                           CornerRadius="28"
+                           Title="Pass-through"
+                           ShowNativeCloseButton="True">
+            <Label Text="Scroll and tap the list behind this sheet. Drag to Large to make the sheet modal." Padding="20" />
+        </sheet:NativeSheet>
+    </Grid>
+</ContentPage>
