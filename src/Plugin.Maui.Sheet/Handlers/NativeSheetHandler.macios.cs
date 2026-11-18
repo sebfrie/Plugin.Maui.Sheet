@@ -49,13 +49,14 @@ public partial class NativeSheetHandler
 		sheet.PrefersScrollingExpandsWhenScrolledToEdge = true;
 		defaultCornerRadius = sheet.PreferredCornerRadius;
 
+		VirtualView.CreateTemplatedContent();
 		UpdateContent();
 		UpdateTitle();
 		UpdateSubtitle();
 		UpdateActions();
 		UpdateIsDismissible();
 		UpdateShowGrabber();
-		UpdateCornerRadius();
+		UpdateBackground();
 		UpdateDetents();
 
 		presenter.PresentViewController(navigation, true, () => VirtualView?.SendOpened(CurrentDetent()));
@@ -80,6 +81,7 @@ public partial class NativeSheetHandler
 		if (Sheet is { } sheet)
 			sheet.Delegate = null;
 		platformContent?.RemoveFromSuperview();
+		VirtualView?.ReleaseTemplatedContent();
 		navigation = null;
 		contentController = null;
 		sheetDelegate = null;
@@ -104,7 +106,7 @@ public partial class NativeSheetHandler
 		if (contentController?.View is not { } container)
 			return;
 		platformContent?.RemoveFromSuperview();
-		platformContent = VirtualView.Content?.ToPlatform(MauiContext!);
+		platformContent = VirtualView.PresentedContent?.ToPlatform(MauiContext!);
 		if (platformContent is not null)
 		{
 			platformContent.RemoveFromSuperview();
@@ -122,7 +124,7 @@ public partial class NativeSheetHandler
 	// Called from ViewDidLayoutSubviews: the MAUI content fills the safe area below the navigation bar.
 	internal void LayoutContent(UIView container)
 	{
-		if (VirtualView?.Content is not IView content)
+		if (VirtualView?.PresentedContent is not IView content)
 			return;
 		var insets = container.SafeAreaInsets;
 		var bounds = container.Bounds;
@@ -147,7 +149,7 @@ public partial class NativeSheetHandler
 		var insets = container.SafeAreaInsets;
 		var width = (container.Bounds.Width > 0 ? container.Bounds.Width : presenterWidth) - insets.Left - insets.Right;
 		var header = navigation.NavigationBarHidden ? 0 : navigation.NavigationBar.Frame.Height;
-		var content = VirtualView?.Content is IView view && width > 0 ? view.Measure(width, double.PositiveInfinity).Height : 0;
+		var content = VirtualView?.PresentedContent is IView view && width > 0 ? view.Measure(width, double.PositiveInfinity).Height : 0;
 		return header + content;
 	}
 
@@ -252,8 +254,10 @@ public partial class NativeSheetHandler
 			Animate(() => sheet.PrefersGrabberVisible = VirtualView.ShowGrabber);
 	}
 
-	void UpdateCornerRadius()
+	void UpdateBackground()
 	{
+		if (contentController?.View is { } view)
+			view.BackgroundColor = VirtualView.BackgroundColor?.ToPlatform() ?? UIColor.SystemBackground;
 		if (Sheet is { } sheet)
 			Animate(() => sheet.PreferredCornerRadius = VirtualView.CornerRadius >= 0 ? (NFloat)VirtualView.CornerRadius : defaultCornerRadius);
 	}
@@ -332,12 +336,6 @@ public partial class NativeSheetHandler
 	sealed class SheetContentViewController(NativeSheetHandler handler) : UIViewController
 	{
 		readonly WeakReference<NativeSheetHandler> owner = new(handler);
-
-		public override void ViewDidLoad()
-		{
-			base.ViewDidLoad();
-			View!.BackgroundColor = UIColor.SystemBackground;
-		}
 
 		public override void ViewDidLayoutSubviews()
 		{

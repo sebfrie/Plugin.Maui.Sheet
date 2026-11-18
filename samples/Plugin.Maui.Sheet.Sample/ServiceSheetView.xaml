@@ -5,8 +5,10 @@
              x:Class="Plugin.Maui.Sheet.Sample.ServiceSheetView"
              x:DataType="local:ServiceSheetViewModel">
     <VerticalStackLayout Padding="20" Spacing="12">
-        <Label Text="This view was resolved from DI and shown with ShowSheetAsync&lt;ServiceSheetView&gt;(). The sheet sizes itself to this content (FitContent)." />
+        <Label Text="This view was created with constructor injection and shown with ShowSheetAsync&lt;ServiceSheetView, string&gt;(). Your pick is returned to the calling view model." />
         <Label Text="{Binding OpenedAt, StringFormat='Opened at {0:T}'}" FontAttributes="Bold" />
-        <Button Text="Close via CloseSheetAsync()" Command="{Binding CloseCommand}" />
+        <Button Text="Apple" Command="{Binding PickCommand}" CommandParameter="Apple" />
+        <Button Text="Banana" Command="{Binding PickCommand}" CommandParameter="Banana" />
+        <Button Text="Cherry" Command="{Binding PickCommand}" CommandParameter="Cherry" />
     </VerticalStackLayout>
 </ContentView>

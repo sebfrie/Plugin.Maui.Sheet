@@ -6,7 +6,8 @@ namespace Plugin.Maui.Sheet;
 
 /// <summary>
 /// A native bottom sheet: <c>UISheetPresentationController</c> + <c>UINavigationBar</c> on iOS/Mac Catalyst,
-/// Material <c>BottomSheetDialog</c> + <c>MaterialToolbar</c> on Android.
+/// Material <c>BottomSheetDialog</c> + <c>MaterialToolbar</c> on Android, and a centred light-dismiss WinUI
+/// <c>Popup</c> with a WinUI header on Windows (which has no bottom sheet).
 /// </summary>
 /// <remarks>
 /// Declare it anywhere inside a page's layout; it takes no space there. Its <see cref="Content"/> is shown
@@ -28,6 +29,10 @@ public class NativeSheet : View
 	/// <summary>Bindable property for <see cref="ShowGrabber"/>.</summary>
 	public static readonly BindableProperty ShowGrabberProperty =
 		BindableProperty.Create(nameof(ShowGrabber), typeof(bool), typeof(NativeSheet), true);
+
+	/// <summary>Bindable property for <see cref="IsDraggable"/>.</summary>
+	public static readonly BindableProperty IsDraggableProperty =
+		BindableProperty.Create(nameof(IsDraggable), typeof(bool), typeof(NativeSheet), true);
 
 	/// <summary>Bindable property for <see cref="CornerRadius"/>.</summary>
 	public static readonly BindableProperty CornerRadiusProperty =
@@ -91,6 +96,12 @@ public class NativeSheet : View
 	public static readonly BindableProperty ContentProperty =
 		BindableProperty.Create(nameof(Content), typeof(View), typeof(NativeSheet), null, propertyChanged: OnContentChanged);
 
+	/// <summary>Bindable property for <see cref="ContentTemplate"/>.</summary>
+	public static readonly BindableProperty ContentTemplateProperty =
+		BindableProperty.Create(nameof(ContentTemplate), typeof(DataTemplate), typeof(NativeSheet), null);
+
+	View? templatedContent;
+
 	/// <summary>Raised after the sheet finished presenting.</summary>
 	public event EventHandler? Opened;
 
@@ -121,11 +132,21 @@ public class NativeSheet : View
 		set => SetValue(IsDismissibleProperty, value);
 	}
 
-	/// <summary>Gets or sets whether the native drag handle is shown. Default <see langword="true"/>.</summary>
+	/// <summary>Gets or sets whether the native drag handle is shown (iOS, Android). Default <see langword="true"/>.</summary>
 	public bool ShowGrabber
 	{
 		get => (bool)GetValue(ShowGrabberProperty);
 		set => SetValue(ShowGrabberProperty, value);
+	}
+
+	/// <summary>
+	/// Gets or sets whether the user can drag the sheet between detents. Default <see langword="true"/>.
+	/// Android only: iOS and Windows have no public API for it.
+	/// </summary>
+	public bool IsDraggable
+	{
+		get => (bool)GetValue(IsDraggableProperty);
+		set => SetValue(IsDraggableProperty, value);
 	}
 
 	/// <summary>Gets or sets the top corner radius of the sheet. A negative value (default) keeps the OS default.</summary>
@@ -173,7 +194,7 @@ public class NativeSheet : View
 		set => SetValue(TitleProperty, value);
 	}
 
-	/// <summary>Gets or sets the native header subtitle (Android, iOS/Mac Catalyst 26+).</summary>
+	/// <summary>Gets or sets the native header subtitle (Android, Windows, iOS/Mac Catalyst 26+).</summary>
 	public string? Subtitle
 	{
 		get => (string?)GetValue(SubtitleProperty);
@@ -244,6 +265,19 @@ public class NativeSheet : View
 	}
 
 	/// <summary>
+	/// Gets or sets a template for the sheet body, used when <see cref="Content"/> is <see langword="null"/>.
+	/// The view is created each time the sheet opens and released when it closes, so a closed sheet costs nothing.
+	/// </summary>
+	public DataTemplate? ContentTemplate
+	{
+		get => (DataTemplate?)GetValue(ContentTemplateProperty);
+		set => SetValue(ContentTemplateProperty, value);
+	}
+
+	/// <summary>The view shown in the sheet: <see cref="Content"/>, or the view created from <see cref="ContentTemplate"/>.</summary>
+	internal View? PresentedContent => Content ?? templatedContent;
+
+	/// <summary>
 	/// Re-measures <see cref="SheetDetent.FitContent"/>. Called automatically when the root of <see cref="Content"/>
 	/// invalidates its measure; call it yourself after size changes deep inside the content.
 	/// </summary>
@@ -255,6 +289,25 @@ public class NativeSheet : View
 	internal bool HasHeader =>
 		!string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Subtitle) ||
 		!string.IsNullOrEmpty(PrimaryActionText) || !string.IsNullOrEmpty(SecondaryActionText) || ShowNativeCloseButton;
+
+	// Called by the handler when the native sheet is created.
+	internal void CreateTemplatedContent()
+	{
+		if (Content is not null || templatedContent is not null || ContentTemplate?.CreateContent() is not View view)
+			return;
+		templatedContent = view;
+		AttachContent(view);
+	}
+
+	// Called by the handler after the native sheet is gone.
+	internal void ReleaseTemplatedContent()
+	{
+		if (templatedContent is not { } view)
+			return;
+		templatedContent = null;
+		DetachContent(view);
+		view.DisconnectHandlers();
+	}
 
 	internal void SendOpened(SheetDetent? current)
 	{
@@ -313,15 +366,22 @@ public class NativeSheet : View
 	{
 		var sheet = (NativeSheet)bindable;
 		if (oldValue is View oldView)
-		{
-			oldView.MeasureInvalidated -= sheet.OnContentMeasureInvalidated;
-			sheet.RemoveLogicalChild(oldView);
-		}
+			sheet.DetachContent(oldView);
 		if (newValue is View newView)
-		{
-			sheet.AddLogicalChild(newView);
-			newView.MeasureInvalidated += sheet.OnContentMeasureInvalidated;
-		}
+			sheet.AttachContent(newView);
+	}
+
+	// A logical child inherits the binding context; it is not part of the page's layout.
+	void AttachContent(View view)
+	{
+		AddLogicalChild(view);
+		view.MeasureInvalidated += OnContentMeasureInvalidated;
+	}
+
+	void DetachContent(View view)
+	{
+		view.MeasureInvalidated -= OnContentMeasureInvalidated;
+		RemoveLogicalChild(view);
 	}
 
 	void OnContentMeasureInvalidated(object? sender, EventArgs e)

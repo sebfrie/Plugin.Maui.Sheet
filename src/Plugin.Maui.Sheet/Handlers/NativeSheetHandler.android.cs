@@ -7,6 +7,7 @@ using Android.Views;
 using Android.Widget;
 using Google.Android.Material.AppBar;
 using Google.Android.Material.BottomSheet;
+using AndroidX.Core.View;
 using Google.Android.Material.Shape;
 using Microsoft.Maui.Platform;
 using AView = Android.Views.View;
@@ -58,12 +59,14 @@ public partial class NativeSheetHandler
 		sheetCallback = new SheetCallback(this);
 		dialog.Behavior.AddBottomSheetCallback(sheetCallback);
 
+		VirtualView.CreateTemplatedContent();
 		UpdateShowGrabber();
 		UpdateTitle();
 		UpdateSubtitle();
 		UpdateActions();
 		UpdateContent();
 		UpdateIsDismissible();
+		UpdateIsDraggable();
 		UpdateDetents();
 		dialog.Show();
 
@@ -71,7 +74,7 @@ public partial class NativeSheetHandler
 		// BottomSheetBehavior has installed its own background, which a custom corner radius replaces.
 		SheetView?.Post(() =>
 		{
-			UpdateCornerRadius();
+			UpdateBackground();
 			UpdateDetents();
 		});
 	}
@@ -112,6 +115,7 @@ public partial class NativeSheetHandler
 		}
 		// The MAUI content keeps its platform view for the next presentation; it may only have one parent.
 		(platformContent?.Parent as ViewGroup)?.RemoveView(platformContent);
+		VirtualView?.ReleaseTemplatedContent();
 
 		dialog = null;
 		root = null;
@@ -130,7 +134,7 @@ public partial class NativeSheetHandler
 		if (root is null)
 			return;
 		(platformContent?.Parent as ViewGroup)?.RemoveView(platformContent);
-		platformContent = VirtualView.Content?.ToPlatform(MauiContext!);
+		platformContent = VirtualView.PresentedContent?.ToPlatform(MauiContext!);
 		if (platformContent is null)
 			return;
 		(platformContent.Parent as ViewGroup)?.RemoveView(platformContent);
@@ -272,6 +276,12 @@ public partial class NativeSheetHandler
 		copy.Recycle();
 	}
 
+	void UpdateIsDraggable()
+	{
+		if (dialog is not null)
+			dialog.Behavior.Draggable = VirtualView.IsDraggable;
+	}
+
 	void UpdateIsDismissible()
 	{
 		if (dialog is not null)
@@ -306,11 +316,13 @@ public partial class NativeSheetHandler
 		InvalidateDetentsCore();
 	}
 
-	void UpdateCornerRadius()
+	// CornerRadius and BackgroundColor both replace the sheet's background with one MaterialShapeDrawable.
+	void UpdateBackground()
 	{
 		if (SheetView is not { } sheetView)
 			return;
-		if (VirtualView.CornerRadius < 0)
+		var color = VirtualView.BackgroundColor;
+		if (VirtualView.CornerRadius < 0 && color is null)
 		{
 			if (defaultSheetBackground is not null)
 				sheetView.Background = defaultSheetBackground;
@@ -319,12 +331,19 @@ public partial class NativeSheetHandler
 		}
 
 		defaultSheetBackground ??= sheetView.Background;
+		var original = defaultSheetBackground as MaterialShapeDrawable;
 		var radius = Context.ToPixels(VirtualView.CornerRadius);
-		var shape = new MaterialShapeDrawable(ShapeAppearanceModel.InvokeBuilder()
-			.SetTopLeftCorner(CornerFamily.Rounded, radius)
-			.SetTopRightCorner(CornerFamily.Rounded, radius)
-			.Build());
-		if (defaultSheetBackground is MaterialShapeDrawable original)
+		var shape = new MaterialShapeDrawable(VirtualView.CornerRadius < 0 && original is not null
+			? original.ShapeAppearanceModel
+			: ShapeAppearanceModel.InvokeBuilder()
+				.SetTopLeftCorner(CornerFamily.Rounded, Math.Max(0, radius))
+				.SetTopRightCorner(CornerFamily.Rounded, Math.Max(0, radius))
+				.Build());
+		if (color is not null)
+		{
+			shape.FillColor = ColorStateList.ValueOf(color.ToPlatform());
+		}
+		else if (original is not null)
 		{
 			shape.FillColor = original.FillColor;
 			shape.InitializeElevationOverlay(sheetView.Context);
@@ -428,6 +447,21 @@ public partial class NativeSheetHandler
 	sealed class SheetDialog(Context context, NativeSheetHandler handler) : BottomSheetDialog(context)
 	{
 		bool passingThrough;
+
+		public override void OnAttachedToWindow()
+		{
+			// The focused window decides the status bar icon color, and the dialog is focused while open. Copy the
+			// activity's runtime choice (e.g. light icons over a dark page); the theme default may be the opposite.
+			// Done before base so Material's edge-to-edge handling restores this value when the sheet leaves the top.
+			if (OwnerActivity?.Window is { DecorView: { } activityDecor } activityWindow
+				&& Window is { DecorView: { } decor } window
+				&& WindowCompat.GetInsetsController(activityWindow, activityDecor) is { } activityBars
+				&& WindowCompat.GetInsetsController(window, decor) is { } sheetBars)
+			{
+				sheetBars.AppearanceLightStatusBars = activityBars.AppearanceLightStatusBars;
+			}
+			base.OnAttachedToWindow();
+		}
 
 		public override void Cancel()
 		{

@@ -6,5 +6,6 @@ public sealed class ServiceSheetViewModel(INativeSheetService sheets)
 {
 	public DateTime OpenedAt { get; } = DateTime.Now;
 
-	public ICommand CloseCommand { get; } = new Command(async () => await sheets.CloseSheetAsync());
+	// The result completes the caller's ShowSheetAsync<ServiceSheetView, string>().
+	public ICommand PickCommand { get; } = new Command<string>(async fruit => await sheets.CloseSheetAsync(fruit));
 }

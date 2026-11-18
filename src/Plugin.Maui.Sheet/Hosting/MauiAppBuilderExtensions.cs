@@ -11,7 +11,7 @@ public static class MauiAppBuilderExtensions
 	/// </summary>
 	public static MauiAppBuilder UseNativeSheet(this MauiAppBuilder builder)
 	{
-#if ANDROID || IOS || MACCATALYST
+#if ANDROID || IOS || MACCATALYST || WINDOWS
 		builder.ConfigureMauiHandlers(handlers => handlers.AddHandler<NativeSheet, NativeSheetHandler>());
 #endif
 		builder.Services.TryAddSingleton<INativeSheetService, NativeSheetService>();

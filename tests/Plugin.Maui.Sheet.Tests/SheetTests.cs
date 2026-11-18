@@ -72,6 +72,7 @@ public class NativeSheetTests
 		Assert.True(sheet.IsDismissible);
 		Assert.True(sheet.ShowGrabber);
 		Assert.True(sheet.IsPrimaryActionEnabled);
+		Assert.True(sheet.IsDraggable);
 		Assert.Equal(-1, sheet.CornerRadius);
 		Assert.Equal([SheetDetent.Medium, SheetDetent.Large], sheet.Detents);
 		Assert.False(sheet.HasHeader);
@@ -164,6 +165,36 @@ public class NativeSheetTests
 		sheet.SendDismissed();
 
 		Assert.False(isOpenWhenRaised);
+	}
+
+	[Fact]
+	public void ContentTemplate_IsBuiltOnlyWhileOpenAndThenReleased()
+	{
+		var sheet = new NativeSheet { BindingContext = "vm", ContentTemplate = new DataTemplate(() => new Label()) };
+		Assert.Null(sheet.PresentedContent);
+
+		sheet.CreateTemplatedContent();
+		var content = Assert.IsType<Label>(sheet.PresentedContent);
+		Assert.Same(sheet, content.Parent);
+		Assert.Equal("vm", content.BindingContext);
+
+		sheet.CreateTemplatedContent();
+		Assert.Same(content, sheet.PresentedContent);
+
+		sheet.ReleaseTemplatedContent();
+		Assert.Null(sheet.PresentedContent);
+		Assert.Null(content.Parent);
+	}
+
+	[Fact]
+	public void Content_WinsOverContentTemplate()
+	{
+		var content = new Label();
+		var sheet = new NativeSheet { Content = content, ContentTemplate = new DataTemplate(() => new Button()) };
+
+		sheet.CreateTemplatedContent();
+
+		Assert.Same(content, sheet.PresentedContent);
 	}
 
 	[Fact]

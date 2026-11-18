@@ -35,30 +35,36 @@
                            PrimaryActionText="Save"
                            PrimaryActionCommand="{Binding SaveCommand}"
                            IsPrimaryActionEnabled="{Binding CanSave}"
-                           SecondaryActionText="Cancel">
+                           SecondaryActionText="Cancel"
+                           IsDraggable="False">
             <VerticalStackLayout Padding="20" Spacing="12">
                 <Label Text="Save is enabled once you type a name." />
                 <Entry Placeholder="Name" Text="{Binding Name}" />
             </VerticalStackLayout>
         </sheet:NativeSheet>
 
-        <!-- 2. Medium / Large with a scrolling list that expands the sheet -->
+        <!-- 2. Medium / Large with a scrolling list that expands the sheet.
+                ContentTemplate: the list is only built while the sheet is open. -->
         <sheet:NativeSheet IsOpen="{Binding IsListOpen}"
                            Detents="Medium, Large"
                            SelectedDetent="{Binding ListDetent}"
                            DetentChanged="OnListDetentChanged"
                            Title="Medium / Large"
                            ShowNativeCloseButton="True">
-            <Grid RowDefinitions="Auto,*">
-                <Button Text="Expand to Large" Command="{Binding ExpandListCommand}" Margin="16,8" />
-                <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <Label Text="{Binding .}" Padding="16,12" />
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
+            <sheet:NativeSheet.ContentTemplate>
+                <DataTemplate x:DataType="local:MainViewModel">
+                    <Grid RowDefinitions="Auto,*">
+                        <Button Text="Expand to Large" Command="{Binding ExpandListCommand}" Margin="16,8" />
+                        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Label Text="{Binding .}" Padding="16,12" />
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
+                </DataTemplate>
+            </sheet:NativeSheet.ContentTemplate>
         </sheet:NativeSheet>
 
         <!-- 3. Pass-through: the list behind stays interactive below Large -->
@@ -68,6 +74,7 @@
                            IsDismissible="False"
                            DismissAttempted="OnPassThroughDismissAttempted"
                            CornerRadius="28"
+                           BackgroundColor="{AppThemeBinding Light=#FFF8E1, Dark=#3E2F00}"
                            Title="Pass-through"
                            ShowNativeCloseButton="True">
             <Label Text="Scroll and tap the list behind this sheet. Drag to Large to make the sheet modal." Padding="20" />

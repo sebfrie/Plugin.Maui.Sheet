@@ -28,14 +28,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 		ShowServiceSheetCommand = new Command(async () =>
 		{
 			Status = "Service sheet open…";
-			await sheets.ShowSheetAsync<ServiceSheetView>(sheet =>
+			var fruit = await sheets.ShowSheetAsync<ServiceSheetView, string>(sheet =>
 			{
-				sheet.Title = "Opened by a view model";
+				sheet.Title = "Pick a fruit";
 				sheet.Subtitle = "INativeSheetService";
 				sheet.Detents = [SheetDetent.FitContent, SheetDetent.Large];
 				sheet.ShowNativeCloseButton = true;
 			});
-			Status = "Service sheet closed.";
+			Status = fruit is null ? "Service sheet dismissed without a choice." : $"The service sheet returned \"{fruit}\".";
 		});
 	}
 

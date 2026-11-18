@@ -1,7 +1,9 @@
-#if ANDROID || IOS || MACCATALYST
+#if ANDROID || IOS || MACCATALYST || WINDOWS
 using Microsoft.Maui.Handlers;
 #if ANDROID
 using PlatformView = Android.Views.View;
+#elif WINDOWS
+using PlatformView = Microsoft.UI.Xaml.FrameworkElement;
 #else
 using PlatformView = UIKit.UIView;
 #endif
@@ -19,12 +21,19 @@ public partial class NativeSheetHandler : ViewHandler<NativeSheet, PlatformView>
 	public static readonly IPropertyMapper<NativeSheet, NativeSheetHandler> Mapper = new PropertyMapper<NativeSheet, NativeSheetHandler>
 	{
 		[nameof(NativeSheet.Content)] = (h, _) => h.UpdateContent(),
+		[nameof(NativeSheet.ContentTemplate)] = MapContentTemplate,
 		[nameof(NativeSheet.Detents)] = (h, _) => h.UpdateDetents(),
 		[nameof(NativeSheet.SelectedDetent)] = (h, _) => h.UpdateSelectedDetent(),
 		[nameof(NativeSheet.PassThroughInteraction)] = (h, _) => h.UpdatePassThroughInteraction(),
+#if !WINDOWS // Windows has no grabber, and checks IsDismissible when a light dismiss happens.
 		[nameof(NativeSheet.IsDismissible)] = (h, _) => h.UpdateIsDismissible(),
 		[nameof(NativeSheet.ShowGrabber)] = (h, _) => h.UpdateShowGrabber(),
-		[nameof(NativeSheet.CornerRadius)] = (h, _) => h.UpdateCornerRadius(),
+#endif
+		[nameof(NativeSheet.CornerRadius)] = (h, _) => h.UpdateBackground(),
+		[nameof(NativeSheet.BackgroundColor)] = (h, _) => h.UpdateBackground(),
+#if ANDROID
+		[nameof(NativeSheet.IsDraggable)] = (h, _) => h.UpdateIsDraggable(),
+#endif
 		[nameof(NativeSheet.Title)] = (h, _) => h.UpdateTitle(),
 		[nameof(NativeSheet.Subtitle)] = (h, _) => h.UpdateSubtitle(),
 		[nameof(NativeSheet.PrimaryActionText)] = (h, _) => h.UpdateActions(),
@@ -60,6 +69,16 @@ public partial class NativeSheetHandler : ViewHandler<NativeSheet, PlatformView>
 			handler.Present();
 		else
 			handler.Close();
+	}
+
+	/// <summary>Swaps the templated content of an open sheet.</summary>
+	public static void MapContentTemplate(NativeSheetHandler handler, NativeSheet sheet)
+	{
+		if (!sheet.IsOpen || sheet.Content is not null)
+			return;
+		sheet.ReleaseTemplatedContent();
+		sheet.CreateTemplatedContent();
+		handler.UpdateContent();
 	}
 
 	/// <summary>Re-measures <see cref="SheetDetent.FitContent"/>; calls in the same frame are coalesced.</summary>

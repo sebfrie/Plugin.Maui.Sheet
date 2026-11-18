@@ -3,6 +3,7 @@
 		<TargetFrameworks>net11.0;net11.0-android</TargetFrameworks>
 		<!-- The iOS and Mac Catalyst workloads are not available on Linux -->
 		<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net11.0-ios;net11.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net11.0-windows10.0.19041.0</TargetFrameworks>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -12,6 +13,8 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">17.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 
 		<!-- NuGet -->
 		<PackageId>Plugin.Maui.Sheet</PackageId>
@@ -21,13 +24,13 @@
 		<PackageProjectUrl>https://github.com/sebfrie/Plugin.Maui.Sheet</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/sebfrie/Plugin.Maui.Sheet</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>dotnet-maui;maui;plugin;bottomsheet;sheet;uisheetpresentationcontroller;bottomsheetdialog;material</PackageTags>
+		<PackageTags>dotnet-maui;maui;plugin;bottomsheet;sheet;uisheetpresentationcontroller;bottomsheetdialog;material;winui;popup</PackageTags>
 		<IncludeSymbols>True</IncludeSymbols>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<Title>.NET MAUI Native Sheet Plugin</Title>
-		<Description>Plugin.Maui.Sheet shows truly native bottom sheets in .NET MAUI: UISheetPresentationController with a real UINavigationBar on iOS/Mac Catalyst and a Material BottomSheetDialog with a MaterialToolbar on Android.</Description>
+		<Description>Plugin.Maui.Sheet shows truly native bottom sheets in .NET MAUI: UISheetPresentationController with a real UINavigationBar on iOS/Mac Catalyst, a Material BottomSheetDialog with a MaterialToolbar on Android, and a light-dismiss WinUI Popup on Windows.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 		<DebugType>portable</DebugType>
@@ -39,6 +42,11 @@
 	<ItemGroup Condition="$(TargetFramework.Contains('-ios')) != true AND $(TargetFramework.Contains('-maccatalyst')) != true">
 		<Compile Remove="**\*.macios.cs" />
 		<None Include="**\*.macios.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+	</ItemGroup>
+	<!-- Windows -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-windows')) != true">
+		<Compile Remove="**\*.windows.cs" />
+		<None Include="**\*.windows.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
 	</ItemGroup>
 	<!-- Android -->
 	<ItemGroup Condition="$(TargetFramework.Contains('-android')) != true">
