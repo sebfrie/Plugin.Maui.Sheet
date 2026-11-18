@@ -24,6 +24,9 @@
 
 		<!-- Unpackaged on Windows, as in the .NET MAUI 11 template -->
 		<WindowsPackageType>None</WindowsPackageType>
+		<!-- Built for a specific architecture (as the screenshot workflow does), it bundles the Windows App SDK
+		     runtime and runs without it being installed. Set here, not on the command line, so the library is unaffected. -->
+		<WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' AND '$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">17.0</SupportedOSPlatformVersion>

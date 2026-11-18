@@ -83,8 +83,8 @@ jobs:
       - name: Install workloads
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
-        # Self-contained Windows App SDK (the runner has no Windows App SDK runtime) needs an explicit architecture.
-        run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:WindowsAppSDKSelfContained=true -p:RuntimeIdentifier=win-x64
+        # With an explicit architecture the sample bundles the Windows App SDK runtime, which the runner lacks.
+        run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:RuntimeIdentifier=win-x64
       - name: Screenshots
         shell: pwsh
         run: ./.github/scripts/screenshots-windows.ps1
