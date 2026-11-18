@@ -9,6 +9,19 @@
 | Header | `UINavigationBar` with `UIBarButtonItem`s | `MaterialToolbar` with menu actions | WinUI `TextBlock`s and `Button`s (accent primary) |
 | Grabber | `PrefersGrabberVisible` | `BottomSheetDragHandleView` | – |
 
+## Screenshots
+
+The [sample app](samples/Plugin.Maui.Sheet.Sample), captured on an Android emulator, an iOS simulator and Windows by the [screenshot workflow](.github/workflows/screenshots.yml).
+
+| | FitContent form | Medium / Large list | Pass-through |
+|---|---|---|---|
+| **Android** | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-form.png" width="220" alt="Android: FitContent form with Cancel and Save" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-list.png" width="220" alt="Android: Medium / Large list" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-passthrough.png" width="220" alt="Android: Pass-through sheet over the page" /> |
+| **iOS** | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-form.png" width="220" alt="iOS: FitContent form with Cancel and Save" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-list.png" width="220" alt="iOS: Medium / Large list" /> | <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-passthrough.png" width="220" alt="iOS: Pass-through sheet over the page" /> |
+
+**Windows**
+
+<img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-form.png" width="32%" alt="Windows: FitContent form with Cancel and Save" /> <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-list.png" width="32%" alt="Windows: Medium / Large list" /> <img src="https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-passthrough.png" width="32%" alt="Windows: Pass-through sheet over the page" />
+
 ## Install
 
 [![NuGet](https://img.shields.io/nuget/v/Plugin.Maui.Sheet.svg?label=NuGet)](https://www.nuget.org/packages/Plugin.Maui.Sheet/)
