@@ -50,7 +50,8 @@ jobs:
           if-no-files-found: ignore
 
   ios:
-    runs-on: macos-26
+    # .NET for iOS 27.2 needs Xcode 27.2, which is on GitHub's Xcode 27 image (macOS 27).
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
       - name: Select newest Xcode
@@ -62,9 +63,7 @@ jobs:
         # Restore covers every target of the sample, Android included.
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
-        # shortcut: .NET for iOS 27.2 asks for Xcode 27.2, which no GitHub image has yet; the sample only uses
-        # iOS 26 APIs, so it builds with Xcode 26. Drop ValidateXcodeVersion once an image ships Xcode 27.
-        run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64 -p:ValidateXcodeVersion=false
+        run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
       - name: Screenshots
         run: bash .github/scripts/screenshots-ios.sh
       - uses: actions/upload-artifact@v4
