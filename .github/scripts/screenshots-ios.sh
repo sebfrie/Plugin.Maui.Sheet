@@ -5,14 +5,18 @@ bundle=com.sebfrie.plugin.maui.sheet.sample
 app=$(find samples -path "*iossimulator-arm64/Plugin.Maui.Sheet.Sample.app" -type d | head -1)
 mkdir -p screenshots
 
-# Newest iOS runtime, preferring a non-Max "Pro" iPhone.
+# An iPhone 18 on the newest iOS runtime. Runtime ids look like "...SimRuntime.iOS-27-2"; some carry extra
+# device-specific suffixes, so only the leading version numbers are read.
 udid=$(xcrun simctl list devices available -j | python3 -c '
-import json, sys
+import json, re, sys
 devices = json.load(sys.stdin)["devices"]
-runtimes = sorted((r for r in devices if ".iOS-" in r), key=lambda r: [int(p) for p in r.rsplit("iOS-", 1)[1].split("-")])
-phones = [d for d in devices[runtimes[-1]] if d["name"].startswith("iPhone")]
-pro = [d for d in phones if "Pro" in d["name"] and "Max" not in d["name"]]
-print((pro or phones)[0]["udid"])')
+def version(runtime):
+    m = re.search(r"\.iOS-(\d+)(?:-(\d+))?", runtime)
+    return (int(m.group(1)), int(m.group(2) or 0)) if m else None
+phones = [(version(r), d) for r, ds in devices.items() if version(r) for d in ds if d["name"] == "iPhone 18"]
+if not phones:
+    sys.exit("No iPhone 18 simulator. Available: " + ", ".join(sorted({d["name"] for ds in devices.values() for d in ds})))
+print(max(phones, key=lambda p: p[0])[1]["udid"])')
 
 xcrun simctl boot "$udid"
 xcrun simctl bootstatus "$udid"
