@@ -83,8 +83,8 @@ jobs:
       - name: Install workloads
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
-        # With an explicit architecture the sample bundles the Windows App SDK runtime, which the runner lacks.
-        run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:RuntimeIdentifier=win-x64
+        # The runner has no Windows App SDK runtime installed, so the sample bundles it.
+        run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:BundleWindowsAppRuntime=true
       - name: Screenshots
         shell: pwsh
         run: ./.github/scripts/screenshots-windows.ps1
