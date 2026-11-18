@@ -1,0 +1,114 @@
+name: Sample screenshots
+
+# Runs the sample on an Android emulator, an iOS simulator and Windows, screenshots each sheet
+# and commits the images to screenshots/ on the branch it was started on.
+on:
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '11.0.x'
+  SAMPLE: samples/Plugin.Maui.Sheet.Sample/Plugin.Maui.Sheet.Sample.csproj
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '21'
+      - name: Install workload and Android SDK packages
+        run: |
+          dotnet workload install maui-android
+          dotnet build $SAMPLE -t:InstallAndroidDependencies -f net11.0-android -p:AndroidSdkDirectory=$ANDROID_HOME -p:AcceptAndroidSDKLicenses=True
+      - name: Build sample
+        # Embedding the assemblies makes the APK installable on its own (no fast deployment).
+        run: dotnet build $SAMPLE -f net11.0-android -c Debug -p:RuntimeIdentifier=android-x64 -p:EmbedAssembliesIntoApk=true -p:AndroidSdkDirectory=$ANDROID_HOME
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          script: bash .github/scripts/screenshots-android.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-android
+          path: screenshots/
+          if-no-files-found: ignore
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Install workload
+        run: dotnet workload install maui-ios
+      - name: Build sample
+        run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
+      - name: Screenshots
+        run: bash .github/scripts/screenshots-ios.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-ios
+          path: screenshots/
+          if-no-files-found: ignore
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Install workload
+        run: dotnet workload install maui-windows
+      - name: Build sample
+        # Self-contained Windows App SDK: the runner has no Windows App SDK runtime installed.
+        run: dotnet build ${{ env.SAMPLE }} -f net11.0-windows10.0.19041.0 -c Debug -p:WindowsAppSDKSelfContained=true
+      - name: Screenshots
+        shell: pwsh
+        run: ./.github/scripts/screenshots-windows.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-windows
+          path: screenshots/
+          if-no-files-found: ignore
+
+  commit:
+    needs: [android, ios, windows]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: screenshots-*
+          path: screenshots
+          merge-multiple: true
+      - name: Commit screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add screenshots
+          git diff --cached --quiet || { git commit -m "Update sample screenshots"; git push; }
