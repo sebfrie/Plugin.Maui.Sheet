@@ -307,7 +307,11 @@ public partial class NativeSheetHandler
 		if (VirtualView.ShowGrabber && grabber is null)
 		{
 			grabber = new BottomSheetDragHandleView(Material3Context(dialog.Context));
-			root.AddView(grabber, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent));
+			// Material's handle view is 48dp tall with 20dp bottom padding: the handle sits 12dp from the top and
+			// 32dp of empty space follow, which above a toolbar left a ~45dp gap. 28dp without padding keeps the
+			// handle at 12dp and puts the header right below it, as in Material 3 sheets.
+			grabber.SetPadding(0, 0, 0, 0);
+			root.AddView(grabber, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, (int)Context.ToPixels(28)));
 		}
 		else if (!VirtualView.ShowGrabber && grabber is not null)
 		{
