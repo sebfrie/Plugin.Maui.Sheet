@@ -1,25 +1,32 @@
 name: Create a (Pre)release on NuGet
 
+# Push a tag such as v1.2.0 or v1.2.0-rc1 (or create a GitHub Release with one) on a commit that is on main.
 on:
   push:
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
-    - "v[0-9]+.[0-9]+.[0-9]+-preview[0-9]+"
+    - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 env:
   DOTNET_VERSION: '11.0.x' # The .NET SDK version to use
 
 jobs:
   release-nuget:
-  
+
     runs-on: windows-latest
 
     permissions:
-      contents: read
+      contents: write # creates the GitHub Release
       id-token: write # lets NuGet/login trade GitHub's OIDC token for a short-lived nuget.org API key (Trusted Publishing)
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history, so any commit on main can be released, not only its tip
+
+      - name: Verify the tagged commit is on main
+        shell: bash
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -29,21 +36,45 @@ jobs:
       - name: Install .NET MAUI Workload
         run: dotnet workload restore samples\Plugin.Maui.Sheet.Sample.sln
 
-      - name: Verify commit exists in origin/main
-        run: |
-          git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
-          git branch --remote --contains | grep origin/main
       - name: Get version information from tag
         id: get_version
         run: |
           $version="${{github.ref_name}}".TrimStart("v")
           "version-without-v=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      # Version (not just PackageVersion) also stamps the assembly, file and informational versions of the DLL.
+      - name: Build
+        run: dotnet build src\Plugin.Maui.Sheet.sln -c Release -p:Version=${{ steps.get_version.outputs.version-without-v }}
+
+      - name: Test
+        run: dotnet test src\Plugin.Maui.Sheet.sln -c Release --no-build
+
       - name: Pack
-        run: dotnet pack src\Plugin.Maui.Sheet.sln -c Release -p:PackageVersion=${{ steps.get_version.outputs.version-without-v }}
+        run: dotnet pack src\Plugin.Maui.Sheet.sln -c Release --no-build -p:Version=${{ steps.get_version.outputs.version-without-v }}
+
       - name: NuGet login (Trusted Publishing)
         id: nuget_login
         uses: NuGet/login@v1
         with:
           user: sebfrie # nuget.org profile name of the trusted publishing policy owner
+
+      # --skip-duplicate makes a re-run succeed when this version was already pushed.
+      # The matching .snupkg next to the .nupkg is pushed to the symbol server automatically.
       - name: Push
-        run: dotnet nuget push src\Plugin.Maui.Sheet\bin\Release\Plugin.Maui.Sheet.${{ steps.get_version.outputs.version-without-v }}.nupkg -s https://api.nuget.org/v3/index.json -k ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push src\Plugin.Maui.Sheet\bin\Release\Plugin.Maui.Sheet.${{ steps.get_version.outputs.version-without-v }}.nupkg -s https://api.nuget.org/v3/index.json -k ${{ steps.nuget_login.outputs.NUGET_API_KEY }} --skip-duplicate
+
+      - name: GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.get_version.outputs.version-without-v }}
+        run: |
+          files="src/Plugin.Maui.Sheet/bin/Release/Plugin.Maui.Sheet.$VERSION.nupkg src/Plugin.Maui.Sheet/bin/Release/Plugin.Maui.Sheet.$VERSION.snupkg"
+          # A release created in the GitHub UI already exists (it created the tag): only attach the packages.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" $files --clobber
+          else
+            prerelease=$([[ "$VERSION" == *-* ]] && echo --prerelease || true)
+            gh release create "$TAG" $files --verify-tag --generate-notes $prerelease
+          fi

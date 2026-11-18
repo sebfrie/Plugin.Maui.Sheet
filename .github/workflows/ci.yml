@@ -8,11 +8,16 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# A newer push to the same pull request cancels the older run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   DOTNET_VERSION: '11.0.x' # The .NET SDK version to use
 
 jobs:
-  build-plugin-ci:
+  build:
 
     runs-on: windows-latest
 
@@ -23,12 +28,16 @@ jobs:
       uses: actions/setup-dotnet@v6
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-    
+
     - name: Install .NET MAUI Workload
       run: dotnet workload restore samples\Plugin.Maui.Sheet.Sample.sln
 
-    - name: Build
+    - name: Build library
       run: dotnet build src\Plugin.Maui.Sheet.sln -c Release
 
     - name: Test
       run: dotnet test src\Plugin.Maui.Sheet.sln -c Release --no-build
+
+    # Reuses the library build above; only the sample itself is compiled here.
+    - name: Build sample
+      run: dotnet build samples\Plugin.Maui.Sheet.Sample.sln -c Release
