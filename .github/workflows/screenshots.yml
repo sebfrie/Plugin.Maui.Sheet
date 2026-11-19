@@ -2,7 +2,7 @@ name: Sample screenshots
 
 # Runs the sample on an Android emulator, an iOS simulator and Windows, screenshots each sheet
 # and commits the images to screenshots/ on the branch it was started on. Check screenshots (alerts,
-# modal pages and pickers opened from inside a sheet) are only uploaded as checks-* artifacts.
+# modal pages and pickers opened from inside a sheet) go to screenshots/checks/, without thumbnails.
 on:
   workflow_dispatch:
 
@@ -77,6 +77,7 @@ jobs:
         continue-on-error: true
         run: |
           brew tap facebook/fb
+          brew trust facebook/fb
           brew install idb-companion
           pipx install fb-idb
       - name: Screenshots
@@ -134,6 +135,11 @@ jobs:
         with:
           pattern: screenshots-*
           path: screenshots
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: checks-*
+          path: screenshots/checks
           merge-multiple: true
       - uses: actions/setup-python@v7
         with:

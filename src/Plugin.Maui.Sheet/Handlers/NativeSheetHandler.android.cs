@@ -467,7 +467,7 @@ public partial class NativeSheetHandler
 			icon.LoadImage(MauiContext!, result => menuItem.SetIcon(result?.Value));
 			// Like iOS bar buttons: icons take the toolbar's colour unless a FontImageSource sets its own.
 			if (icon is not FontImageSource { Color: not null })
-				AndroidX.Core.View.MenuItemCompat.SetIconTintList(menuItem, ColorStateList.ValueOf(ThemeColor(context, Resource.Attribute.colorOnSurfaceVariant)));
+				AndroidX.Core.View.MenuItemCompat.SetIconTintList(menuItem, IconTint(context));
 		}
 
 		var visibility = header.IsEmpty ? ViewStates.Gone : ViewStates.Visible;
@@ -511,6 +511,20 @@ public partial class NativeSheetHandler
 		context.Theme!.ResolveAttribute(Resource.Attribute.bottomSheetDragHandleStyle, new TypedValue(), true)
 			? context
 			: new ContextThemeWrapper(context, Resource.Style.Theme_Material3_DayNight);
+
+	// The colour of the toolbar's navigation icon, with its disabled state.
+	static ColorStateList? IconTint(Context context)
+	{
+		var values = context.ObtainStyledAttributes([Resource.Attribute.colorControlNormal]);
+		try
+		{
+			return values.GetColorStateList(0);
+		}
+		finally
+		{
+			values.Recycle();
+		}
+	}
 
 	static Android.Graphics.Color ThemeColor(Context context, int attribute)
 	{

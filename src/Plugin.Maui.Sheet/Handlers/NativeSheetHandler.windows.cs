@@ -325,15 +325,18 @@ public partial class NativeSheetHandler
 		switch (item.IconImageSource)
 		{
 			// A font glyph takes the header's text colour unless the source sets its own, like a template image on iOS.
+			// A TextBlock, unlike FontIcon, falls back to other fonts for glyphs the font lacks.
 			case FontImageSource { Glyph: { } glyph } font:
 				var fontManager = MauiContext!.Services.GetRequiredService<IFontManager>();
-				button.Content = new UIC.FontIcon
+				var text = new UIC.TextBlock
 				{
-					Glyph = glyph,
+					Text = glyph,
 					FontFamily = fontManager.GetFontFamily(Microsoft.Maui.Font.OfSize(font.FontFamily, 16)),
 					FontSize = 16,
-					Foreground = font.Color?.ToPlatform(),
 				};
+				if (font.Color is { } color)
+					text.Foreground = color.ToPlatform();
+				button.Content = text;
 				break;
 			case { } source:
 				source.LoadImage(MauiContext!, result =>
