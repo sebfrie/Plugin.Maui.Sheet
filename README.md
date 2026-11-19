@@ -27,6 +27,19 @@ The [sample app](samples/Plugin.Maui.Sheet.Sample), captured on an Android emula
 [![Windows: Medium / Large list](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-list.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-list.png)
 [![Windows: Pass-through sheet over the page](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-passthrough.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-passthrough.png)
 
+**In-sheet navigation**: a non-dismissible *New entry* sheet with header toolbar items pushes a category picker and pops back with the pick.
+
+| | Root view | Pushed | Back | Overflow menu |
+|---|---|---|---|---|
+| **Android** | [![Android: Root view: close, ✓ action and overflow button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-nav.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-nav.png) | [![Android: Pushed view with a back button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-nav-pushed.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-nav-pushed.png) | [![Android: Back at the root with the picked value](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-nav-picked.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-nav-picked.png) | [![Android: Secondary toolbar items in the overflow menu](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/android-nav-overflow.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/android-nav-overflow.png) |
+| **iOS** | [![iOS: Root view: close, ✓ action and overflow button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-nav.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-nav.png) | [![iOS: Pushed view with a back button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-nav-pushed.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-nav-pushed.png) | [![iOS: Back at the root with the picked value](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-nav-picked.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-nav-picked.png) | [![iOS: Secondary toolbar items in the overflow menu](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/ios-nav-overflow.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/ios-nav-overflow.png) |
+
+**Windows** (in-sheet navigation)
+
+[![Windows: Root view: close, ✓ action and overflow button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-nav.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-nav.png)
+[![Windows: Pushed view with a back button](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-nav-pushed.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-nav-pushed.png)
+[![Windows: Secondary toolbar items in the overflow menu](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/thumbs/windows-nav-overflow.png)](https://raw.githubusercontent.com/sebfrie/Plugin.Maui.Sheet/main/screenshots/windows-nav-overflow.png)
+
 ## Install
 
 ```bash
@@ -201,7 +214,7 @@ Icons take the header's color (like template images on iOS) unless a `FontImageS
 
 ### Alerts, pickers and modal pages from inside a sheet
 
-`DisplayAlertAsync`, `DisplayActionSheetAsync`, `DatePicker`/`Picker` and modal pages (`PushModalAsync`, and so CommunityToolkit.Maui popups) opened while a sheet is up appear above the sheet on iOS and Android. On iOS, MAUI presents modal pages from the window's root controller, which is already presenting the sheet; while a sheet is up, the plugin presents them from the sheet instead (other presentations are unchanged).
+`DisplayAlertAsync`, `DisplayActionSheetAsync`, `DatePicker`/`Picker` and modal pages (`PushModalAsync`, and so CommunityToolkit.Maui popups) opened while a sheet is up appear above the sheet on iOS and Android ([check screenshots](screenshots/checks)). On iOS, MAUI presents modal pages from the window's root controller, which is already presenting the sheet; while a sheet is up, the plugin presents them from the sheet instead (other presentations are unchanged).
 
 ## Platform notes
 
