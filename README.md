@@ -214,7 +214,7 @@ Icons take the header's color (like template images on iOS) unless a `FontImageS
 
 ### Alerts, pickers and modal pages from inside a sheet
 
-`DisplayAlertAsync`, `DisplayActionSheetAsync`, `DatePicker`/`Picker` and modal pages (`PushModalAsync`, and so CommunityToolkit.Maui popups) opened while a sheet is up appear above the sheet on iOS and Android ([check screenshots](screenshots/checks)). On iOS, MAUI presents modal pages from the window's root controller, which is already presenting the sheet; while a sheet is up, the plugin presents them from the sheet instead (other presentations are unchanged).
+`DisplayAlertAsync`, `DisplayActionSheetAsync`, `DatePicker`/`Picker` and modal pages (`PushModalAsync`, and so CommunityToolkit.Maui popups) opened while a sheet is up appear above the sheet ([check screenshots](screenshots/checks)). On iOS, MAUI presents modal pages from the window's root controller, which is already presenting the sheet; while a sheet is up, the plugin presents them from the sheet instead (other presentations are unchanged). On Windows, MAUI draws modal pages inside the window, below the sheet's `Popup`, so the sheet hides while a modal page opened over it is up and comes back when that page is popped.
 
 ## Platform notes
 

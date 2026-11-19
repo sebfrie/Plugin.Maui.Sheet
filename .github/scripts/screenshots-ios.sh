@@ -24,6 +24,15 @@ xcrun simctl bootstatus "$udid"
 xcrun simctl status_bar "$udid" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
 xcrun simctl install "$udid" "$app"
 
+# simctl occasionally aborts inside CoreSimulator; a retry gets the screenshot.
+shot() {
+	for attempt in 1 2 3; do
+		xcrun simctl io "$udid" screenshot "$1" && return
+		sleep 5
+	done
+	return 1
+}
+
 launch() {
 	xcrun simctl terminate "$udid" "$bundle" || true
 	SIMCTL_CHILD_SAMPLE_SHEET="$1" xcrun simctl launch "$udid" "$bundle"
@@ -32,12 +41,12 @@ launch() {
 
 for sheet in form list passthrough nav nav-pushed nav-picked; do
 	launch "$sheet"
-	xcrun simctl io "$udid" screenshot "screenshots/ios-$sheet.png"
+	shot "screenshots/ios-$sheet.png"
 done
 
 for check in nav-alert nav-modal nav-date; do
 	launch "$check"
-	xcrun simctl io "$udid" screenshot "checks/ios-$check.png"
+	shot "checks/ios-$check.png"
 done
 
 # simctl cannot tap; the overflow menu needs idb (installed best-effort by the workflow).
@@ -55,6 +64,6 @@ else:
     sys.exit("overflow button not found")') && {
 		idb ui tap --udid "$udid" $point
 		sleep 3
-		xcrun simctl io "$udid" screenshot screenshots/ios-nav-overflow.png
+		shot screenshots/ios-nav-overflow.png
 	} || echo "Skipped the overflow screenshot."
 fi

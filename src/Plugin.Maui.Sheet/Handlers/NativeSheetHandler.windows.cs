@@ -28,6 +28,8 @@ public partial class NativeSheetHandler
 	UIC.StackPanel? trailing;
 	UIC.Grid? contentHost;
 	UI.XamlRoot? xamlRoot;
+	Microsoft.Maui.Controls.Window? window;
+	readonly HashSet<Page> modalsAbove = [];
 	List<(SheetDetent Detent, double Height)> sorted = [];
 
 	/// <inheritdoc />
@@ -118,6 +120,9 @@ public partial class NativeSheetHandler
 		popup.Opened += OnPopupOpened;
 		popup.Closed += OnPopupClosed;
 		root.Changed += OnXamlRootChanged;
+		window = VirtualView.Window;
+		window.ModalPushing += OnModalPushing;
+		window.ModalPopped += OnModalPopped;
 
 		VirtualView.CreateTemplatedContent();
 		ShowTop(false, false);
@@ -145,6 +150,21 @@ public partial class NativeSheetHandler
 			return;
 		TearDown();
 		VirtualView?.SendDismissed();
+	}
+
+	// Windows draws modal pages (and so CommunityToolkit popups) inside the window, below this Popup: the sheet
+	// steps aside while a modal page opened over it is up.
+	void OnModalPushing(object? sender, ModalPushingEventArgs e)
+	{
+		modalsAbove.Add(e.Modal);
+		if (host is not null)
+			host.Visibility = UI.Visibility.Collapsed;
+	}
+
+	void OnModalPopped(object? sender, ModalPoppedEventArgs e)
+	{
+		if (modalsAbove.Remove(e.Modal) && modalsAbove.Count == 0 && host is not null)
+			host.Visibility = UI.Visibility.Visible;
 	}
 
 	void OnBackdropTapped(object sender, UI.Input.TappedRoutedEventArgs e) => LightDismiss();
@@ -175,6 +195,12 @@ public partial class NativeSheetHandler
 		popup.Closed -= OnPopupClosed;
 		if (xamlRoot is not null)
 			xamlRoot.Changed -= OnXamlRootChanged;
+		if (window is not null)
+		{
+			window.ModalPushing -= OnModalPushing;
+			window.ModalPopped -= OnModalPopped;
+		}
+		modalsAbove.Clear();
 		backdrop!.Tapped -= OnBackdropTapped;
 		host!.KeyDown -= OnHostKeyDown;
 		backButton!.Click -= OnBackClick;
@@ -200,6 +226,7 @@ public partial class NativeSheetHandler
 		trailing = null;
 		contentHost = null;
 		xamlRoot = null;
+		window = null;
 		sorted = [];
 	}
 
