@@ -57,18 +57,24 @@ jobs:
           if-no-files-found: ignore
 
   ios:
-    # .NET for iOS 27.2 needs Xcode 27.2, which is on GitHub's Xcode 27 image (macOS 27).
+    # GitHub's Xcode 27 image (macOS 27) has several Xcode 27 versions side by side.
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
-      - name: Select newest Xcode
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Install workloads
         # Restore covers every target of the sample, Android included.
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
+      - name: Select the Xcode .NET for iOS was built for
+        # .NET for iOS requires the exact Xcode its SDK pack names (Microsoft.iOS.Sdk.net11.0_27.2 → Xcode 27.2);
+        # the image's newest Xcode can be newer. Fails if the image no longer has that version.
+        run: |
+          want=$(ls -d "$DOTNET_ROOT"/packs/Microsoft.iOS.Sdk.net*_* | sed 's/.*_//' | sort -V | tail -1)
+          xcode=$(ls -d /Applications/Xcode_"$want"*.app | sort -V | tail -1)
+          echo ".NET for iOS $want -> $xcode"
+          sudo xcode-select -s "$xcode"
       - name: Build sample
         run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
       - name: Install idb
