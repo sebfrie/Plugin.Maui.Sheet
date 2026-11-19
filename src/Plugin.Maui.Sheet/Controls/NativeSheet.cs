@@ -14,7 +14,7 @@ namespace Plugin.Maui.Sheet;
 /// inside the native sheet below the native header while <see cref="IsOpen"/> is <see langword="true"/>.
 /// </remarks>
 [ContentProperty(nameof(Content))]
-public class NativeSheet : View
+public partial class NativeSheet : View
 {
 	static readonly IList<SheetDetent> DefaultDetents = Array.AsReadOnly([SheetDetent.Medium, SheetDetent.Large]);
 
@@ -112,9 +112,10 @@ public class NativeSheet : View
 	public event EventHandler<SheetDetentChangedEventArgs>? DetentChanged;
 
 	/// <summary>
-	/// Raised when the user tries to dismiss the sheet (swipe down, tap outside, back button).
-	/// <see cref="CancelEventArgs.Cancel"/> starts as <see langword="true"/> when <see cref="IsDismissible"/> is <see langword="false"/>;
-	/// set it to keep the sheet open, or clear it to let the sheet close anyway.
+	/// Raised when the user tries to dismiss the sheet (swipe down, tap outside, back at the root level).
+	/// Set <see cref="CancelEventArgs.Cancel"/> to keep the sheet open. When <see cref="IsDismissible"/> is
+	/// <see langword="false"/>, Cancel starts as <see langword="true"/> and the sheet stays open regardless:
+	/// only its close button or code (<see cref="IsOpen"/> = <see langword="false"/>) closes it then.
 	/// </summary>
 	public event EventHandler<CancelEventArgs>? DismissAttempted;
 
@@ -187,14 +188,20 @@ public class NativeSheet : View
 		set => SetValue(SelectedDetentProperty, value);
 	}
 
-	/// <summary>Gets or sets the native header title.</summary>
+	/// <summary>
+	/// Gets or sets the native header title. Also an attached property for the views in the
+	/// <see cref="NavigationStack"/> (see <see cref="SetTitle"/>); the root view falls back to the sheet's own value.
+	/// </summary>
 	public string? Title
 	{
 		get => (string?)GetValue(TitleProperty);
 		set => SetValue(TitleProperty, value);
 	}
 
-	/// <summary>Gets or sets the native header subtitle (Android, Windows, iOS/Mac Catalyst 26+).</summary>
+	/// <summary>
+	/// Gets or sets the native header subtitle (Android, Windows, iOS/Mac Catalyst 26+). Also an attached property for
+	/// the views in the <see cref="NavigationStack"/>; the root view falls back to the sheet's own value.
+	/// </summary>
 	public string? Subtitle
 	{
 		get => (string?)GetValue(SubtitleProperty);
@@ -286,10 +293,6 @@ public class NativeSheet : View
 	/// <summary>The sheet takes no space in the page's layout; its content lives in the native sheet.</summary>
 	protected override Size MeasureOverride(double widthConstraint, double heightConstraint) => Size.Zero;
 
-	internal bool HasHeader =>
-		!string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Subtitle) ||
-		!string.IsNullOrEmpty(PrimaryActionText) || !string.IsNullOrEmpty(SecondaryActionText) || ShowNativeCloseButton;
-
 	// Called by the handler when the native sheet is created.
 	internal void CreateTemplatedContent()
 	{
@@ -319,6 +322,7 @@ public class NativeSheet : View
 	internal void SendDismissed()
 	{
 		IsOpen = false;
+		ReleaseNavigationStack();
 		Dismissed?.Invoke(this, EventArgs.Empty);
 	}
 
@@ -335,7 +339,7 @@ public class NativeSheet : View
 	{
 		var args = new CancelEventArgs(!IsDismissible);
 		DismissAttempted?.Invoke(this, args);
-		return args.Cancel;
+		return args.Cancel || !IsDismissible;
 	}
 
 	internal void SendPrimaryAction() => Execute(PrimaryActionCommand, PrimaryActionCommandParameter);
@@ -374,14 +378,14 @@ public class NativeSheet : View
 	// A logical child inherits the binding context; it is not part of the page's layout.
 	void AttachContent(View view)
 	{
-		AddLogicalChild(view);
+		AttachLevel(view);
 		view.MeasureInvalidated += OnContentMeasureInvalidated;
 	}
 
 	void DetachContent(View view)
 	{
 		view.MeasureInvalidated -= OnContentMeasureInvalidated;
-		RemoveLogicalChild(view);
+		DetachLevel(view);
 	}
 
 	void OnContentMeasureInvalidated(object? sender, EventArgs e)

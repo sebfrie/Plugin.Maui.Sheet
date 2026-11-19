@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The root view of an in-sheet navigation stack: its header comes from the attached NativeSheet properties. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sheet="clr-namespace:Plugin.Maui.Sheet;assembly=Plugin.Maui.Sheet"
+             x:Class="Plugin.Maui.Sheet.Sample.NewEntryView"
+             sheet:NativeSheet.Title="New entry"
+             sheet:NativeSheet.Subtitle="In-sheet navigation">
+    <sheet:NativeSheet.ToolbarItems>
+        <!-- Primary: a trailing header action. Its icon takes the header's colour. -->
+        <ToolbarItem x:Name="SaveItem" Text="Save" AutomationId="SaveEntry" IsEnabled="False" Clicked="OnSave">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="✓" Size="22" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <!-- Secondary: the native overflow menu. -->
+        <ToolbarItem Text="Duplicate" Order="Secondary" AutomationId="DuplicateEntry" Clicked="OnMenuItem" />
+        <ToolbarItem Text="Share" Order="Secondary" AutomationId="ShareEntry" Clicked="OnMenuItem" />
+        <ToolbarItem Text="Delete" Order="Secondary" AutomationId="DeleteEntry" Clicked="OnMenuItem" />
+    </sheet:NativeSheet.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+            <Entry x:Name="TitleEntry" Placeholder="Title" AutomationId="EntryTitle" TextChanged="OnTitleChanged" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Category" VerticalOptions="Center" />
+                <Label x:Name="CategoryLabel" Grid.Column="1" Text="None" FontAttributes="Bold" VerticalOptions="Center" />
+            </Grid>
+            <Button Text="Choose category…" AutomationId="ChooseCategory" Clicked="OnChooseCategory" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Due" VerticalOptions="Center" />
+                <DatePicker x:Name="DuePicker" Grid.Column="1" AutomationId="DueDate" />
+            </Grid>
+            <Label x:Name="StatusLabel" FontAttributes="Italic" />
+            <!-- Presentations from inside the sheet appear above it. -->
+            <Button Text="Show an alert" AutomationId="ShowAlert" Clicked="OnShowAlert" />
+            <Button Text="Show a modal page" AutomationId="ShowModal" Clicked="OnShowModal" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

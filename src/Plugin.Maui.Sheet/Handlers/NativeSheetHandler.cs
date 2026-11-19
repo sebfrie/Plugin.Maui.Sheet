@@ -34,12 +34,12 @@ public partial class NativeSheetHandler : ViewHandler<NativeSheet, PlatformView>
 #if ANDROID
 		[nameof(NativeSheet.IsDraggable)] = (h, _) => h.UpdateIsDraggable(),
 #endif
-		[nameof(NativeSheet.Title)] = (h, _) => h.UpdateTitle(),
-		[nameof(NativeSheet.Subtitle)] = (h, _) => h.UpdateSubtitle(),
-		[nameof(NativeSheet.PrimaryActionText)] = (h, _) => h.UpdateActions(),
-		[nameof(NativeSheet.SecondaryActionText)] = (h, _) => h.UpdateActions(),
-		[nameof(NativeSheet.ShowNativeCloseButton)] = (h, _) => h.UpdateActions(),
-		[nameof(NativeSheet.IsPrimaryActionEnabled)] = (h, _) => h.UpdateIsPrimaryActionEnabled(),
+		[nameof(NativeSheet.Title)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.Subtitle)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.PrimaryActionText)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.SecondaryActionText)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.ShowNativeCloseButton)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.IsPrimaryActionEnabled)] = (h, _) => h.UpdateHeader(),
 		[nameof(NativeSheet.IsOpen)] = MapIsOpen,
 	};
 
@@ -47,6 +47,8 @@ public partial class NativeSheetHandler : ViewHandler<NativeSheet, PlatformView>
 	public static readonly CommandMapper<NativeSheet, NativeSheetHandler> CommandMapper = new(ViewCommandMapper)
 	{
 		[nameof(NativeSheet.InvalidateDetents)] = MapInvalidateDetents,
+		[NativeSheetHandlerCommands.Navigate] = (h, _, args) => h.Navigate((SheetNavigationRequest)args!),
+		[NativeSheetHandlerCommands.UpdateHeader] = (h, _, _) => h.UpdateHeader(),
 	};
 
 	bool invalidateDetentsPending;

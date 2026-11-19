@@ -11,10 +11,12 @@ public partial class NativeSheetHandler
 	static readonly NSString SelectedDetentKey = new("selectedDetentIdentifier");
 	static readonly NSString LargestUndimmedDetentKey = new("largestUndimmedDetentIdentifier");
 
-	UINavigationController? navigation;
-	SheetContentViewController? contentController;
+	SheetNavigationController? navigation;
 	SheetDelegate? sheetDelegate;
-	UIView? platformContent;
+	NavigationDelegate? navigationDelegate;
+	// One view controller per view of the navigation stack, root first.
+	readonly List<LevelViewController> levels = [];
+	TaskCompletionSource? pendingNavigation;
 	List<(SheetDetent Detent, double Height)> sorted = [];
 	NFloat defaultCornerRadius;
 	double presenterWidth;
@@ -27,6 +29,8 @@ public partial class NativeSheetHandler
 
 	UISheetPresentationController? Sheet => navigation?.SheetPresentationController;
 
+	LevelViewController? TopLevel => levels.Count > 0 ? levels[^1] : null;
+
 	void Present()
 	{
 		if (navigation is not null)
@@ -38,22 +42,27 @@ public partial class NativeSheetHandler
 		}
 		while (presenter.PresentedViewController is { IsBeingDismissed: false } presented)
 			presenter = presented;
+		ModalPresentationRedirect.Install();
 
 		presenterWidth = presenter.View?.Bounds.Width ?? 0;
 		presenterHeight = presenter.View?.Bounds.Height ?? 0;
-		contentController = new SheetContentViewController(this);
-		navigation = new UINavigationController(contentController) { ModalPresentationStyle = UIModalPresentationStyle.PageSheet };
+		VirtualView.CreateTemplatedContent();
+		foreach (var view in VirtualView.NavigationStack)
+			levels.Add(new LevelViewController(this, view));
+		if (levels.Count == 0)
+			levels.Add(new LevelViewController(this, null));
+		navigation = new SheetNavigationController(levels[0]) { ModalPresentationStyle = UIModalPresentationStyle.PageSheet };
+		if (levels.Count > 1)
+			navigation.ViewControllers = [.. levels];
+		navigationDelegate = new NavigationDelegate(this);
+		navigation.Delegate = navigationDelegate;
 		sheetDelegate = new SheetDelegate(this);
 		var sheet = Sheet!;
 		sheet.Delegate = sheetDelegate;
 		sheet.PrefersScrollingExpandsWhenScrolledToEdge = true;
 		defaultCornerRadius = sheet.PreferredCornerRadius;
 
-		VirtualView.CreateTemplatedContent();
-		UpdateContent();
-		UpdateTitle();
-		UpdateSubtitle();
-		UpdateActions();
+		UpdateHeader();
 		UpdateIsDismissible();
 		UpdateShowGrabber();
 		UpdateBackground();
@@ -80,12 +89,17 @@ public partial class NativeSheetHandler
 	{
 		if (Sheet is { } sheet)
 			sheet.Delegate = null;
-		platformContent?.RemoveFromSuperview();
+		if (navigation is not null)
+			navigation.Delegate = null!;
+		foreach (var level in levels)
+			level.Host(null);
+		levels.Clear();
+		pendingNavigation?.TrySetResult();
 		VirtualView?.ReleaseTemplatedContent();
 		navigation = null;
-		contentController = null;
 		sheetDelegate = null;
-		platformContent = null;
+		navigationDelegate = null;
+		pendingNavigation = null;
 		sorted = [];
 		fitContentWidth = 0;
 		isDismissing = false;
@@ -101,30 +115,72 @@ public partial class NativeSheetHandler
 			sheet.AnimateChanges(changes);
 	}
 
+	// The root view changed.
 	void UpdateContent()
 	{
-		if (contentController?.View is not { } container)
+		if (levels.Count == 0)
 			return;
-		platformContent?.RemoveFromSuperview();
-		platformContent = VirtualView.PresentedContent?.ToPlatform(MauiContext!);
-		if (platformContent is not null)
-		{
-			platformContent.RemoveFromSuperview();
-			container.AddSubview(platformContent);
-		}
-		// Lets a ScrollView/CollectionView drag the sheet up when scrolled to its edge.
-		contentController.SetContentScrollView(platformContent is null ? null : FindScrollView(platformContent), NSDirectionalRectEdge.All);
-		container.SetNeedsLayout();
+		levels[0].Host(VirtualView.PresentedContent);
+		UpdateBackground();
 		InvalidateDetentsCore();
+	}
+
+	void Navigate(SheetNavigationRequest request)
+	{
+		if (navigation is null)
+		{
+			request.Done.TrySetResult();
+			return;
+		}
+		pendingNavigation?.TrySetResult();
+		pendingNavigation = request.Done;
+		if (request.Pushed is { } view)
+		{
+			var level = new LevelViewController(this, view);
+			levels.Add(level);
+			UpdateHeader();
+			UpdateBackground();
+			navigation.PushViewController(level, request.Animated);
+		}
+		else
+		{
+			var popped = levels.GetRange(levels.Count - request.Popped.Count, request.Popped.Count);
+			levels.RemoveRange(levels.Count - popped.Count, popped.Count);
+			UpdateHeader();
+			navigation.PopToViewController(levels[^1], request.Animated);
+		}
+		if (!request.Animated)
+			CompletePendingNavigation();
+	}
+
+	// After every push and pop, animated or not, and after the user went back (back button or edge swipe).
+	void OnDidShowViewController()
+	{
+		var shown = navigation?.ViewControllers?.Length ?? 0;
+		while (levels.Count > shown && levels.Count > 1)
+		{
+			levels[^1].Host(null);
+			levels.RemoveAt(levels.Count - 1);
+			VirtualView?.SendUserPopped();
+		}
+		CompletePendingNavigation();
+		UpdateHeader();
+		InvalidateDetentsCore();
+	}
+
+	void CompletePendingNavigation()
+	{
+		pendingNavigation?.TrySetResult();
+		pendingNavigation = null;
 	}
 
 	static UIScrollView? FindScrollView(UIView view) =>
 		view as UIScrollView ?? view.Subviews.Select(FindScrollView).FirstOrDefault(s => s is not null);
 
-	// Called from ViewDidLayoutSubviews: the MAUI content fills the safe area below the navigation bar.
-	internal void LayoutContent(UIView container)
+	// Called from ViewDidLayoutSubviews: the level's MAUI view fills the safe area below the navigation bar.
+	void LayoutLevel(LevelViewController level)
 	{
-		if (VirtualView?.PresentedContent is not IView content)
+		if (level.View is not { } container || level.Content is not IView content)
 			return;
 		var insets = container.SafeAreaInsets;
 		var bounds = container.Bounds;
@@ -135,27 +191,28 @@ public partial class NativeSheetHandler
 		content.Arrange(frame);
 
 		// FitContent was measured with a guessed width before the sheet had its real size (e.g. iPad form sheets).
-		if (frame.Width > 0 && frame.Width != fitContentWidth && VirtualView.Detents.Contains(SheetDetent.FitContent))
+		if (level == TopLevel && frame.Width > 0 && frame.Width != fitContentWidth && VirtualView?.Detents.Contains(SheetDetent.FitContent) == true)
 		{
 			fitContentWidth = frame.Width;
 			InvalidateDetentsCore();
 		}
 	}
 
+	// FitContent sizes the sheet to the view on top of the navigation stack.
 	double MeasureFitContent()
 	{
-		if (navigation is null || contentController?.View is not { } container)
+		if (navigation is null || TopLevel?.View is not { } container)
 			return 0;
 		var insets = container.SafeAreaInsets;
 		var width = (container.Bounds.Width > 0 ? container.Bounds.Width : presenterWidth) - insets.Left - insets.Right;
 		var header = navigation.NavigationBarHidden ? 0 : navigation.NavigationBar.Frame.Height;
-		var content = VirtualView?.PresentedContent is IView view && width > 0 ? view.Measure(width, double.PositiveInfinity).Height : 0;
+		var content = TopLevel.Content is IView view && width > 0 ? view.Measure(width, double.PositiveInfinity).Height : 0;
 		return header + content;
 	}
 
 	void InvalidateDetentsCore()
 	{
-		if (!VirtualView.Detents.Contains(SheetDetent.FitContent) || Sheet is not { } sheet)
+		if (VirtualView?.Detents.Contains(SheetDetent.FitContent) != true || Sheet is not { } sheet)
 			return;
 		if (OperatingSystem.IsIOSVersionAtLeast(16) || OperatingSystem.IsMacCatalystVersionAtLeast(16))
 			Animate(sheet.InvalidateDetents);
@@ -242,6 +299,7 @@ public partial class NativeSheetHandler
 			Animate(() => SetIdentifier(sheet, LargestUndimmedDetentKey, IdentifierOf(LargestUndimmed(VirtualView, sorted))));
 	}
 
+	// Blocks swipe down and tap outside; UIKit then asks DidAttemptToDismiss.
 	void UpdateIsDismissible()
 	{
 		if (navigation is not null)
@@ -256,65 +314,88 @@ public partial class NativeSheetHandler
 
 	void UpdateBackground()
 	{
-		if (contentController?.View is { } view)
-			view.BackgroundColor = VirtualView.BackgroundColor?.ToPlatform() ?? UIColor.SystemBackground;
+		var color = VirtualView.BackgroundColor?.ToPlatform() ?? UIColor.SystemBackground;
+		foreach (var level in levels)
+			level.View!.BackgroundColor = color;
 		if (Sheet is { } sheet)
 			Animate(() => sheet.PreferredCornerRadius = VirtualView.CornerRadius >= 0 ? (NFloat)VirtualView.CornerRadius : defaultCornerRadius);
 	}
 
-	void UpdateTitle()
+	// Every level's navigationItem: the title, close/back and actions UIKit shows while that level is on top.
+	void UpdateHeader()
 	{
-		if (contentController is null)
+		if (navigation is null || VirtualView is not { } sheet)
 			return;
-		contentController.NavigationItem.Title = VirtualView.Title;
-		UpdateHeaderVisibility();
+		for (var i = 0; i < levels.Count; i++)
+			ApplyHeader(levels[i].NavigationItem, sheet.HeaderAt(i));
+		var hidden = sheet.HeaderAt(levels.Count - 1).IsEmpty;
+		if (navigation.NavigationBarHidden != hidden)
+		{
+			navigation.SetNavigationBarHidden(hidden, navigation.PresentingViewController is not null);
+			InvalidateDetentsCore();
+		}
 	}
 
-	void UpdateSubtitle()
+	void ApplyHeader(UINavigationItem item, SheetHeader header)
 	{
-		if (contentController is null)
-			return;
+		item.Title = header.Title;
 		if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
-			contentController.NavigationItem.Subtitle = VirtualView.Subtitle;
-		UpdateHeaderVisibility();
-	}
+			item.Subtitle = header.Subtitle;
 
-	void UpdateActions()
-	{
-		if (contentController is null)
-			return;
-		var item = contentController.NavigationItem;
-
-		item.RightBarButtonItem = string.IsNullOrEmpty(VirtualView.PrimaryActionText) ? null
-			: new UIBarButtonItem(VirtualView.PrimaryActionText, UIBarButtonItemStyle.Done, (_, _) => VirtualView?.SendPrimaryAction());
-
+		// Pushed levels keep UIKit's own back button (and its edge swipe); the root gets close and the secondary action.
 		var leading = new List<UIBarButtonItem>();
-		if (VirtualView.ShowNativeCloseButton)
+		if (header.ShowClose)
 			leading.Add(new UIBarButtonItem(UIBarButtonSystemItem.Close, (_, _) =>
 			{
 				if (VirtualView is not null)
 					VirtualView.IsOpen = false;
 			}));
-		if (!string.IsNullOrEmpty(VirtualView.SecondaryActionText))
-			leading.Add(new UIBarButtonItem(VirtualView.SecondaryActionText, UIBarButtonItemStyle.Plain, (_, _) => VirtualView?.SendSecondaryAction()));
-		item.LeftBarButtonItems = [.. leading];
+		if (!string.IsNullOrEmpty(header.SecondaryActionText))
+			leading.Add(new UIBarButtonItem(header.SecondaryActionText, UIBarButtonItemStyle.Plain, (_, _) => VirtualView?.SendSecondaryAction()));
+		item.LeftBarButtonItems = leading.Count > 0 ? [.. leading] : null!;
 
-		UpdateIsPrimaryActionEnabled();
-		UpdateHeaderVisibility();
+		// RightBarButtonItems run from the trailing edge inwards.
+		var trailing = new List<UIBarButtonItem>();
+		if (!string.IsNullOrEmpty(header.PrimaryActionText))
+			trailing.Add(new UIBarButtonItem(header.PrimaryActionText, UIBarButtonItemStyle.Done, (_, _) => VirtualView?.SendPrimaryAction())
+			{
+				Enabled = header.IsPrimaryActionEnabled,
+			});
+		if (header.OverflowItems.Count > 0)
+			trailing.Add(OverflowButton(header.OverflowItems));
+		trailing.AddRange(header.Items.Select(BarButton));
+		item.RightBarButtonItems = [.. trailing];
 	}
 
-	void UpdateIsPrimaryActionEnabled()
+	UIBarButtonItem BarButton(ToolbarItem toolbarItem)
 	{
-		if (contentController?.NavigationItem.RightBarButtonItem is { } primary)
-			primary.Enabled = VirtualView.IsPrimaryActionEnabled;
+		var button = new UIBarButtonItem(toolbarItem.Text ?? string.Empty, UIBarButtonItemStyle.Plain, (_, _) => ((IMenuItemController)toolbarItem).Activate())
+		{
+			Enabled = toolbarItem.IsEnabled,
+			AccessibilityIdentifier = toolbarItem.AutomationId,
+			AccessibilityLabel = toolbarItem.Text,
+		};
+		toolbarItem.IconImageSource?.LoadImage(MauiContext!, result =>
+		{
+			if (result?.Value is { } image)
+				button.Image = image;
+		});
+		return button;
 	}
 
-	void UpdateHeaderVisibility()
+	static UIBarButtonItem OverflowButton(IReadOnlyList<ToolbarItem> toolbarItems)
 	{
-		if (navigation is null || navigation.NavigationBarHidden == !VirtualView.HasHeader)
-			return;
-		navigation.SetNavigationBarHidden(!VirtualView.HasHeader, navigation.PresentingViewController is not null);
-		InvalidateDetentsCore();
+		var actions = toolbarItems.Select(toolbarItem =>
+		{
+			var action = UIAction.Create(toolbarItem.Text ?? string.Empty, null, toolbarItem.AutomationId, _ => ((IMenuItemController)toolbarItem).Activate());
+			if (!toolbarItem.IsEnabled)
+				action.Attributes = UIMenuElementAttributes.Disabled;
+			return (UIMenuElement)action;
+		});
+		return new UIBarButtonItem(UIImage.GetSystemImage("ellipsis.circle"), UIMenu.Create([.. actions]))
+		{
+			AccessibilityIdentifier = "NativeSheetOverflow",
+		};
 	}
 
 	void OnSelectedDetentChanged()
@@ -326,22 +407,65 @@ public partial class NativeSheetHandler
 	// Only asked when IsDismissible is true (ModalInPresentation is false).
 	bool ShouldDismiss() => VirtualView?.SendDismissAttempted() != true;
 
-	// Called when ModalInPresentation blocked a swipe, or ShouldDismiss returned false.
+	// Called when ModalInPresentation blocked a swipe or tap outside, or ShouldDismiss returned false. With
+	// IsDismissible false only the close button or code closes the sheet; this just reports the attempt.
 	void OnDismissAttempted()
 	{
-		if (VirtualView is { IsDismissible: false } sheet && !sheet.SendDismissAttempted())
-			sheet.IsOpen = false;
+		if (VirtualView is { IsDismissible: false } sheet)
+			sheet.SendDismissAttempted();
 	}
 
-	sealed class SheetContentViewController(NativeSheetHandler handler) : UIViewController
+	// Hosts one view of the navigation stack below the navigation bar.
+	sealed class LevelViewController : UIViewController
 	{
-		readonly WeakReference<NativeSheetHandler> owner = new(handler);
+		readonly WeakReference<NativeSheetHandler> owner;
+		UIView? platformView;
+
+		public LevelViewController(NativeSheetHandler handler, View? content)
+		{
+			owner = new(handler);
+			Host(content);
+		}
+
+		public View? Content { get; private set; }
+
+		// Shows a view (null: none); its platform view may only have one superview.
+		public void Host(View? content)
+		{
+			platformView?.RemoveFromSuperview();
+			Content = content;
+			if (!owner.TryGetTarget(out var handler) || content is null)
+			{
+				platformView = null;
+				return;
+			}
+			platformView = content.ToPlatform(handler.MauiContext!);
+			platformView.RemoveFromSuperview();
+			View!.AddSubview(platformView);
+			// Lets a ScrollView/CollectionView drag the sheet up when scrolled to its edge.
+			SetContentScrollView(FindScrollView(platformView), NSDirectionalRectEdge.All);
+			View.SetNeedsLayout();
+		}
 
 		public override void ViewDidLayoutSubviews()
 		{
 			base.ViewDidLayoutSubviews();
+			if (owner.TryGetTarget(out var handler))
+				handler.LayoutLevel(this);
+		}
+	}
+
+	// Marks the sheet's controller for ModalPresentationRedirect.
+	internal sealed class SheetNavigationController(UIViewController root) : UINavigationController(root);
+
+	sealed class NavigationDelegate(NativeSheetHandler handler) : UINavigationControllerDelegate
+	{
+		readonly WeakReference<NativeSheetHandler> owner = new(handler);
+
+		public override void DidShowViewController(UINavigationController navigationController, UIViewController viewController, bool animated)
+		{
 			if (owner.TryGetTarget(out var target))
-				target.LayoutContent(View!);
+				target.OnDidShowViewController();
 		}
 	}
 

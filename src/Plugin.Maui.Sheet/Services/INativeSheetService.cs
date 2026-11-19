@@ -32,6 +32,15 @@ public interface INativeSheetService
 		Action<NativeSheet>? configure = null, CancellationToken cancellationToken = default)
 		where TView : View;
 
+	/// <summary>
+	/// Shows <paramref name="root"/> in a native sheet on the active window and completes once the sheet is presented,
+	/// so you can navigate in it (<see cref="NativeSheet.PushAsync"/>) or wait for <see cref="NativeSheet.Dismissed"/>.
+	/// Close it with <c>IsOpen = false</c> or <see cref="CloseSheetAsync()"/>. Once dismissed, the sheet is disconnected and not reusable.
+	/// </summary>
+	/// <param name="root">The root view of the sheet's <see cref="NativeSheet.NavigationStack"/>.</param>
+	/// <param name="configure">Sets sheet properties such as <see cref="NativeSheet.Title"/> or <see cref="NativeSheet.Detents"/>.</param>
+	Task<NativeSheet> OpenAsync(View root, Action<NativeSheet>? configure = null);
+
 	/// <summary>Closes the most recently opened sheet of this service and completes once it is dismissed.</summary>
 	Task CloseSheetAsync();
 

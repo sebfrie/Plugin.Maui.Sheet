@@ -11,9 +11,9 @@ public partial class MainPage : ContentPage
 		Loaded += OpenRequestedSheet;
 	}
 
-	// The screenshot workflow opens a sheet at launch with SAMPLE_SHEET=form|list|passthrough
+	// The screenshot workflow opens a sheet at launch with SAMPLE_SHEET=form|list|passthrough|nav|nav-…
 	// (an intent extra on Android, an environment variable on iOS and Windows).
-	void OpenRequestedSheet(object? sender, EventArgs e)
+	async void OpenRequestedSheet(object? sender, EventArgs e)
 	{
 		Loaded -= OpenRequestedSheet;
 #if ANDROID
@@ -34,6 +34,36 @@ public partial class MainPage : ContentPage
 			case "passthrough":
 				viewModel.IsPassThroughOpen = true;
 				break;
+			case "nav" or "nav-overflow": // the workflow opens the overflow menu itself
+				await OpenEntryAsync();
+				break;
+			case "nav-pushed":
+				await (await OpenEntryAsync()).ChooseCategoryAsync();
+				break;
+			case "nav-picked":
+			{
+				var entry = await OpenEntryAsync();
+				await entry.ChooseCategoryAsync();
+				await Task.Delay(1000);
+				await ((CategoryPickerView)((NativeSheet)entry.Parent).NavigationStack[^1]).PickAsync("Groceries");
+				break;
+			}
+			case "nav-alert":
+				await (await OpenEntryAsync()).ShowAlertAsync();
+				break;
+			case "nav-modal":
+				await (await OpenEntryAsync()).ShowModalAsync();
+				break;
+			case "nav-date":
+				(await OpenEntryAsync()).OpenDatePicker();
+				break;
+		}
+
+		async Task<NewEntryView> OpenEntryAsync()
+		{
+			var entry = await viewModel.OpenNewEntryAsync();
+			entry.Fill("Weekly shop");
+			return entry;
 		}
 	}
 

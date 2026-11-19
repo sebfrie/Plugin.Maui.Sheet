@@ -13,8 +13,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 	bool isPassThroughOpen;
 	SheetDetent? listDetent;
 
+	readonly INativeSheetService sheets;
+
 	public MainViewModel(INativeSheetService sheets)
 	{
+		this.sheets = sheets;
 		OpenFormCommand = new Command(() => IsFormOpen = true);
 		OpenListCommand = new Command(() => IsListOpen = true);
 		OpenPassThroughCommand = new Command(() => IsPassThroughOpen = true);
@@ -37,6 +40,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
 			});
 			Status = fruit is null ? "Service sheet dismissed without a choice." : $"The service sheet returned \"{fruit}\".";
 		});
+		OpenNewEntryCommand = new Command(async () => await OpenNewEntryAsync());
+	}
+
+	// In-sheet navigation: OpenAsync completes once the sheet is presented; the root view pushes further views.
+	public async Task<NewEntryView> OpenNewEntryAsync()
+	{
+		var entry = new NewEntryView();
+		var sheet = await sheets.OpenAsync(entry, sheet =>
+		{
+			// Only the close button or Save close it: no swipe down, tap outside or system back at the root.
+			sheet.IsDismissible = false;
+			sheet.ShowNativeCloseButton = true;
+			sheet.Detents = [SheetDetent.Large];
+		});
+		sheet.Dismissed += (_, _) => Status = entry.Saved is { } saved ? $"Saved {saved}." : "New entry closed without saving.";
+		return entry;
 	}
 
 	public event PropertyChangedEventHandler? PropertyChanged;
@@ -49,6 +68,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 	public ICommand SaveCommand { get; }
 	public ICommand ExpandListCommand { get; }
 	public ICommand ShowServiceSheetCommand { get; }
+	public ICommand OpenNewEntryCommand { get; }
 
 	public string Name
 	{

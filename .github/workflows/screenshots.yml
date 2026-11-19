@@ -1,7 +1,8 @@
 name: Sample screenshots
 
 # Runs the sample on an Android emulator, an iOS simulator and Windows, screenshots each sheet
-# and commits the images to screenshots/ on the branch it was started on.
+# and commits the images to screenshots/ on the branch it was started on. Check screenshots (alerts,
+# modal pages and pickers opened from inside a sheet) are only uploaded as checks-* artifacts.
 on:
   workflow_dispatch:
 
@@ -49,6 +50,12 @@ jobs:
           name: screenshots-android
           path: screenshots/android-*.png
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: checks-android
+          path: checks/android-*.png
+          if-no-files-found: ignore
 
   ios:
     # .NET for iOS 27.2 needs Xcode 27.2, which is on GitHub's Xcode 27 image (macOS 27).
@@ -65,6 +72,13 @@ jobs:
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Build sample
         run: dotnet build $SAMPLE -f net11.0-ios -c Debug -p:RuntimeIdentifier=iossimulator-arm64
+      - name: Install idb
+        # Taps the overflow button for its screenshot; without idb that one screenshot is skipped.
+        continue-on-error: true
+        run: |
+          brew tap facebook/fb
+          brew install idb-companion
+          pipx install fb-idb
       - name: Screenshots
         run: bash .github/scripts/screenshots-ios.sh
       - uses: actions/upload-artifact@v7
@@ -72,6 +86,12 @@ jobs:
         with:
           name: screenshots-ios
           path: screenshots/ios-*.png
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: checks-ios
+          path: checks/ios-*.png
           if-no-files-found: ignore
 
   windows:
@@ -94,6 +114,12 @@ jobs:
         with:
           name: screenshots-windows
           path: screenshots/windows-*.png
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: checks-windows
+          path: checks/windows-*.png
           if-no-files-found: ignore
 
   commit:

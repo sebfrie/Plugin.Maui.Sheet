@@ -5,10 +5,12 @@ using Android.Graphics.Drawables;
 using Android.Util;
 using Android.Views;
 using Android.Widget;
+using AndroidX.Activity;
 using Google.Android.Material.AppBar;
 using Google.Android.Material.BottomSheet;
 using AndroidX.Core.View;
 using Google.Android.Material.Shape;
+using Google.Android.Material.Transition.Platform;
 using Microsoft.Maui.Platform;
 using AView = Android.Views.View;
 using Behavior = Google.Android.Material.BottomSheet.BottomSheetBehavior;
@@ -19,13 +21,17 @@ public partial class NativeSheetHandler
 {
 	const int SecondaryItemId = 1;
 	const int PrimaryItemId = 2;
+	const int FirstToolbarItemId = 100;
 
 	SheetDialog? dialog;
 	LinearLayout? root;
 	MaterialToolbar? toolbar;
 	BottomSheetDragHandleView? grabber;
-	AView? platformContent;
+	FrameLayout? contentHost;
+	Microsoft.Maui.Controls.View? shownView;
 	SheetCallback? sheetCallback;
+	BackCallback? backCallback;
+	ToolbarItem[] shownToolbarItems = [];
 	Drawable? defaultSheetBackground;
 	List<(SheetDetent Detent, double Height)> resolved = [];
 	List<(SheetDetent Detent, double Height)> stops = [];
@@ -52,9 +58,19 @@ public partial class NativeSheetHandler
 		toolbar.MenuItemClick += OnMenuItemClick;
 		toolbar.NavigationClick += OnNavigationClick;
 		root.AddView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent));
+		// Weight 1: fills the sheet when its height is fixed, wraps the content when the sheet wraps (FitContent).
+		contentHost = new FrameLayout(activity);
+		root.AddView(contentHost, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, 0, 1f));
 
 		dialog = new SheetDialog(activity, this);
 		dialog.SetContentView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
+		// Not cancelable: that stops BottomSheetDialog's own back handling, which would hide the sheet instead of
+		// going back a level. The handler owns back, tap outside and (via Cancel) swipe away.
+		dialog.SetCancelable(false);
+		backCallback = new BackCallback(this);
+		dialog.OnBackPressedDispatcher.AddCallback(backCallback);
+		// The keyboard shrinks the window, so a full-height sheet shrinks too and its content can scroll to the focused field.
+		dialog.Window?.SetSoftInputMode(SoftInput.AdjustResize);
 		dialog.ShowEvent += OnDialogShown;
 		dialog.DismissEvent += OnDialogDismissed;
 		sheetCallback = new SheetCallback(this);
@@ -62,10 +78,7 @@ public partial class NativeSheetHandler
 
 		VirtualView.CreateTemplatedContent();
 		UpdateShowGrabber();
-		UpdateTitle();
-		UpdateSubtitle();
-		UpdateActions();
-		UpdateContent();
+		ShowTop(false, false);
 		UpdateIsDismissible();
 		UpdateIsDraggable();
 		UpdateDetents();
@@ -92,7 +105,7 @@ public partial class NativeSheetHandler
 
 	void OnDialogShown(object? sender, EventArgs e) => VirtualView?.SendOpened(CurrentDetent());
 
-	// Back button, tap outside or swipe away, after SheetDialog.Cancel() allowed it.
+	// Swipe away after SheetDialog.Cancel() allowed it.
 	void OnDialogDismissed(object? sender, EventArgs e)
 	{
 		if (sender != dialog)
@@ -109,39 +122,89 @@ public partial class NativeSheetHandler
 		dialog.DismissEvent -= OnDialogDismissed;
 		if (sheetCallback is not null)
 			dialog.Behavior.RemoveBottomSheetCallback(sheetCallback);
+		backCallback?.Remove();
 		if (toolbar is not null)
 		{
 			toolbar.MenuItemClick -= OnMenuItemClick;
 			toolbar.NavigationClick -= OnNavigationClick;
 		}
-		// The MAUI content keeps its platform view for the next presentation; it may only have one parent.
-		(platformContent?.Parent as ViewGroup)?.RemoveView(platformContent);
+		contentHost?.RemoveAllViews();
 		VirtualView?.ReleaseTemplatedContent();
 
 		dialog = null;
 		root = null;
 		toolbar = null;
 		grabber = null;
-		platformContent = null;
+		contentHost = null;
+		shownView = null;
 		sheetCallback = null;
+		backCallback = null;
+		shownToolbarItems = [];
 		defaultSheetBackground = null;
 		resolved = [];
 		stops = [];
 		passThroughActive = false;
 	}
 
+	// The root view changed; it is only visible while nothing is pushed on top of it.
 	void UpdateContent()
 	{
-		if (root is null)
+		if (VirtualView.NavigationStack.Count <= 1)
+			ShowTop(false, false);
+	}
+
+	void Navigate(SheetNavigationRequest request)
+	{
+		if (contentHost is null)
+			request.Done.TrySetResult();
+		else
+			ShowTop(request.Animated, request.Pushed is not null, () => request.Done.TrySetResult());
+	}
+
+	// Shows the top of the navigation stack, with Material's horizontal shared-axis transition when animated.
+	void ShowTop(bool animated, bool forward, Action? done = null)
+	{
+		var top = VirtualView.NavigationStack.LastOrDefault();
+		if (contentHost is null || top == shownView)
+		{
+			done?.Invoke();
 			return;
-		(platformContent?.Parent as ViewGroup)?.RemoveView(platformContent);
-		platformContent = VirtualView.PresentedContent?.ToPlatform(MauiContext!);
-		if (platformContent is null)
-			return;
-		(platformContent.Parent as ViewGroup)?.RemoveView(platformContent);
-		// Weight 1: fills the sheet when its height is fixed, wraps the content when the sheet wraps (FitContent).
-		root.AddView(platformContent, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, 0, 1f));
+		}
+
+		var next = top?.ToPlatform(MauiContext!);
+		(next?.Parent as ViewGroup)?.RemoveView(next);
+		if (animated)
+		{
+			var transition = new MaterialSharedAxis(MaterialSharedAxis.X, forward);
+			if (done is not null)
+				transition.AddListener(new TransitionEnd(done));
+			Android.Transitions.TransitionManager.BeginDelayedTransition(contentHost, transition);
+		}
+		contentHost.RemoveAllViews();
+		if (next is not null)
+			contentHost.AddView(next, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.MatchParent));
+		shownView = top;
+		UpdateHeader();
 		InvalidateDetentsCore();
+		if (!animated)
+			done?.Invoke();
+	}
+
+	// Back: one level up, or at the root a dismissal attempt.
+	void OnBack()
+	{
+		if (VirtualView is not { } sheet)
+			return;
+		if (sheet.NavigationStack.Count > 1)
+			sheet.GoBack();
+		else if (!sheet.SendDismissAttempted())
+			Close();
+	}
+
+	void OnTouchOutside()
+	{
+		if (VirtualView?.SendDismissAttempted() == false)
+			Close();
 	}
 
 	void InvalidateDetentsCore()
@@ -184,6 +247,8 @@ public partial class NativeSheetHandler
 		sheetView.LayoutParameters = layout;
 
 		behavior.FitToContents = stops.Count < 3;
+		// One stop (e.g. Large): straight from expanded to hidden, never a collapsed state in between.
+		behavior.SkipCollapsed = stops.Count == 1;
 		// A single stop: collapsed and expanded must be the same position.
 		behavior.PeekHeight = stops.Count == 1 ? parentHeight : (int)stops[0].Height;
 		if (stops.Count == 3)
@@ -253,12 +318,13 @@ public partial class NativeSheetHandler
 			window.ClearFlags(WindowManagerFlags.DimBehind);
 		else
 			window.AddFlags(WindowManagerFlags.DimBehind);
-		dialog.SetCanceledOnTouchOutside(!passThroughActive);
 	}
 
-	bool ShouldPassThrough(MotionEvent e)
+	bool ShouldPassThrough(MotionEvent e) => passThroughActive && IsOutsideSheet(e);
+
+	bool IsOutsideSheet(MotionEvent e)
 	{
-		if (!passThroughActive || SheetView is not { } sheetView)
+		if (SheetView is not { } sheetView)
 			return false;
 		var bounds = new Android.Graphics.Rect();
 		return !sheetView.GetGlobalVisibleRect(bounds) || !bounds.Contains((int)e.RawX, (int)e.RawY);
@@ -289,7 +355,7 @@ public partial class NativeSheetHandler
 			dialog.Behavior.Hideable = VirtualView.IsDismissible;
 	}
 
-	// SheetDialog.Cancel() is the single path for every user dismissal.
+	// The sheet was swiped away (BottomSheetDialog then calls Cancel()).
 	bool ShouldStayOpen()
 	{
 		if (VirtualView?.SendDismissAttempted() != true)
@@ -361,70 +427,77 @@ public partial class NativeSheetHandler
 		sheetView.Background = shape;
 	}
 
-	void UpdateTitle()
+	// Shows the header of the top of the navigation stack.
+	void UpdateHeader()
 	{
-		if (toolbar is null)
+		if (toolbar?.Menu is not { } menu || toolbar.Context is not { } context)
 			return;
-		toolbar.Title = VirtualView.Title;
-		UpdateHeaderVisibility();
-	}
+		var header = VirtualView.HeaderAt(Math.Max(0, VirtualView.NavigationStack.Count - 1));
+		toolbar.Title = header.Title;
+		toolbar.Subtitle = header.Subtitle;
 
-	void UpdateSubtitle()
-	{
-		if (toolbar is null)
-			return;
-		toolbar.Subtitle = VirtualView.Subtitle;
-		UpdateHeaderVisibility();
-	}
-
-	void UpdateActions()
-	{
-		if (toolbar?.Menu is not { } menu)
-			return;
-
-		toolbar.NavigationIcon = VirtualView.ShowNativeCloseButton
-			? AndroidX.AppCompat.Content.Res.AppCompatResources.GetDrawable(toolbar.Context!, Resource.Drawable.abc_ic_clear_material)
-			: null;
-		toolbar.NavigationContentDescription = VirtualView.ShowNativeCloseButton
-			? toolbar.Context!.GetString(Android.Resource.String.Cancel)
-			: null;
+		(int Icon, int Description)? navigation = header.ShowBack
+			? (Resource.Drawable.abc_ic_ab_back_material, Resource.String.abc_action_bar_up_description)
+			: header.ShowClose ? (Resource.Drawable.abc_ic_clear_material, Android.Resource.String.Cancel) : null;
+		toolbar.NavigationIcon = navigation is { } nav ? AndroidX.AppCompat.Content.Res.AppCompatResources.GetDrawable(context, nav.Icon) : null;
+		toolbar.NavigationContentDescription = navigation is { } description ? context.GetString(description.Description) : null;
 
 		menu.Clear();
-		if (!string.IsNullOrEmpty(VirtualView.SecondaryActionText))
-			menu.Add(0, SecondaryItemId, 0, VirtualView.SecondaryActionText)!.SetShowAsAction(ShowAsAction.Always);
-		if (!string.IsNullOrEmpty(VirtualView.PrimaryActionText))
-			menu.Add(0, PrimaryItemId, 1, VirtualView.PrimaryActionText)!.SetShowAsAction(ShowAsAction.Always);
+		if (!string.IsNullOrEmpty(header.SecondaryActionText))
+			menu.Add(0, SecondaryItemId, 0, header.SecondaryActionText)!.SetShowAsAction(ShowAsAction.Always);
+		if (!string.IsNullOrEmpty(header.PrimaryActionText))
+		{
+			var primary = menu.Add(0, PrimaryItemId, 1, header.PrimaryActionText)!;
+			primary.SetShowAsAction(ShowAsAction.Always);
+			primary.SetEnabled(header.IsPrimaryActionEnabled);
+		}
 
-		UpdateIsPrimaryActionEnabled();
-		UpdateHeaderVisibility();
-	}
+		// Actions that do not fit move into the overflow menu (IfRoom); Secondary items always live there.
+		shownToolbarItems = [.. header.Items, .. header.OverflowItems];
+		for (var i = 0; i < shownToolbarItems.Length; i++)
+		{
+			var item = shownToolbarItems[i];
+			var menuItem = menu.Add(0, FirstToolbarItemId + i, 2 + i, item.Text ?? string.Empty)!;
+			menuItem.SetShowAsAction(item.Order == ToolbarItemOrder.Secondary ? ShowAsAction.Never : ShowAsAction.IfRoom);
+			menuItem.SetEnabled(item.IsEnabled);
+			if (!string.IsNullOrEmpty(item.AutomationId))
+				AndroidX.Core.View.MenuItemCompat.SetContentDescription(menuItem, item.AutomationId);
+			if (item.Order == ToolbarItemOrder.Secondary || item.IconImageSource is not { } icon)
+				continue;
+			icon.LoadImage(MauiContext!, result => menuItem.SetIcon(result?.Value));
+			// Like iOS bar buttons: icons take the toolbar's colour unless a FontImageSource sets its own.
+			if (icon is not FontImageSource { Color: not null })
+				AndroidX.Core.View.MenuItemCompat.SetIconTintList(menuItem, ColorStateList.ValueOf(ThemeColor(context, Resource.Attribute.colorOnSurfaceVariant)));
+		}
 
-	void UpdateIsPrimaryActionEnabled() =>
-		toolbar?.Menu?.FindItem(PrimaryItemId)?.SetEnabled(VirtualView.IsPrimaryActionEnabled);
-
-	void UpdateHeaderVisibility()
-	{
-		if (toolbar is null)
-			return;
-		var visibility = VirtualView.HasHeader ? ViewStates.Visible : ViewStates.Gone;
-		if (toolbar.Visibility == visibility)
-			return;
-		toolbar.Visibility = visibility;
-		InvalidateDetentsCore();
+		var visibility = header.IsEmpty ? ViewStates.Gone : ViewStates.Visible;
+		if (toolbar.Visibility != visibility)
+		{
+			toolbar.Visibility = visibility;
+			InvalidateDetentsCore();
+		}
 	}
 
 	void OnMenuItemClick(object? sender, AndroidX.AppCompat.Widget.Toolbar.MenuItemClickEventArgs e)
 	{
-		if (e.Item?.ItemId == PrimaryItemId)
+		var id = e.Item?.ItemId ?? 0;
+		if (id == PrimaryItemId)
 			VirtualView?.SendPrimaryAction();
-		else if (e.Item?.ItemId == SecondaryItemId)
+		else if (id == SecondaryItemId)
 			VirtualView?.SendSecondaryAction();
+		else if (id - FirstToolbarItemId is var index && index >= 0 && index < shownToolbarItems.Length)
+			((IMenuItemController)shownToolbarItems[index]).Activate();
 	}
 
+	// The navigation icon is the back arrow on pushed levels and the close button at the root.
 	void OnNavigationClick(object? sender, AndroidX.AppCompat.Widget.Toolbar.NavigationClickEventArgs e)
 	{
-		if (VirtualView is not null)
-			VirtualView.IsOpen = false;
+		if (VirtualView is not { } sheet)
+			return;
+		if (sheet.NavigationStack.Count > 1)
+			sheet.GoBack();
+		else
+			sheet.IsOpen = false;
 	}
 
 	static int ActivityHeight(Dialog dialog) =>
@@ -450,6 +523,7 @@ public partial class NativeSheetHandler
 	sealed class SheetDialog(Context context, NativeSheetHandler handler) : BottomSheetDialog(context)
 	{
 		bool passingThrough;
+		bool touchingOutside;
 
 		public override void OnAttachedToWindow()
 		{
@@ -473,14 +547,48 @@ public partial class NativeSheetHandler
 			base.Cancel();
 		}
 
+		// Touches outside the sheet either reach the page (pass-through) or are a dismissal attempt on release.
 		public override bool DispatchTouchEvent(MotionEvent e)
 		{
 			if (e.ActionMasked == MotionEventActions.Down)
+			{
 				passingThrough = handler.dialog == this && handler.ShouldPassThrough(e);
-			if (!passingThrough)
+				touchingOutside = !passingThrough && handler.dialog == this && handler.IsOutsideSheet(e);
+			}
+			if (passingThrough)
+			{
+				handler.PassThrough(e);
+				return true;
+			}
+			if (!touchingOutside)
 				return base.DispatchTouchEvent(e);
-			handler.PassThrough(e);
+			if (e.ActionMasked == MotionEventActions.Up && handler.IsOutsideSheet(e))
+				handler.OnTouchOutside();
 			return true;
+		}
+	}
+
+	sealed class BackCallback(NativeSheetHandler handler) : OnBackPressedCallback(true)
+	{
+		public override void HandleOnBackPressed() => handler.OnBack();
+	}
+
+	sealed class TransitionEnd(Action done) : Java.Lang.Object, Android.Transitions.Transition.ITransitionListener
+	{
+		public void OnTransitionEnd(Android.Transitions.Transition? transition) => done();
+
+		public void OnTransitionCancel(Android.Transitions.Transition? transition) => done();
+
+		public void OnTransitionStart(Android.Transitions.Transition? transition)
+		{
+		}
+
+		public void OnTransitionPause(Android.Transitions.Transition? transition)
+		{
+		}
+
+		public void OnTransitionResume(Android.Transitions.Transition? transition)
+		{
 		}
 	}
 

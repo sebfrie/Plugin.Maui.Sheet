@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Pushed onto the sheet: the header shows its title and a native back button. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sheet="clr-namespace:Plugin.Maui.Sheet;assembly=Plugin.Maui.Sheet"
+             x:Class="Plugin.Maui.Sheet.Sample.CategoryPickerView"
+             sheet:NativeSheet.Title="Category">
+    <CollectionView x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+                <Label Text="{Binding .}" Padding="20,14" AutomationId="{Binding .}" />
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+</ContentView>

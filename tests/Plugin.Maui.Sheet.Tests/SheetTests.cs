@@ -75,7 +75,7 @@ public class NativeSheetTests
 		Assert.True(sheet.IsDraggable);
 		Assert.Equal(-1, sheet.CornerRadius);
 		Assert.Equal([SheetDetent.Medium, SheetDetent.Large], sheet.Detents);
-		Assert.False(sheet.HasHeader);
+		Assert.True(sheet.HeaderAt(0).IsEmpty);
 	}
 
 	[Fact]
@@ -137,6 +137,15 @@ public class NativeSheetTests
 	{
 		var sheet = new NativeSheet();
 		sheet.DismissAttempted += (_, e) => e.Cancel = true;
+
+		Assert.True(sheet.SendDismissAttempted());
+	}
+
+	[Fact]
+	public void DismissAttempted_CannotOverrideANonDismissibleSheet()
+	{
+		var sheet = new NativeSheet { IsDismissible = false };
+		sheet.DismissAttempted += (_, e) => e.Cancel = false;
 
 		Assert.True(sheet.SendDismissAttempted());
 	}
@@ -208,5 +217,126 @@ public class NativeSheetTests
 
 		sheet.Content = null;
 		Assert.Null(content.Parent);
+	}
+}
+
+public class SheetNavigationTests
+{
+	[Fact]
+	public async Task PushAndPop_MaintainTheStackWithoutRaisingPopped()
+	{
+		var root = new Label();
+		var sheet = new NativeSheet { BindingContext = "vm", Content = root };
+		var first = new Label();
+		var second = new Label { BindingContext = "own" };
+		var popped = new List<View>();
+		sheet.Popped += (_, e) => popped.Add(e.View);
+
+		await sheet.PushAsync(first);
+		await sheet.PushAsync(second);
+
+		Assert.Equal([root, first, second], sheet.NavigationStack);
+		Assert.Same(sheet, first.Parent);
+		Assert.Equal("vm", first.BindingContext);
+		Assert.Equal("own", second.BindingContext);
+
+		await sheet.PopAsync(5);
+
+		Assert.Equal([root], sheet.NavigationStack);
+		Assert.Null(first.Parent);
+		Assert.Null(second.Parent);
+		Assert.Empty(popped);
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sheet.PopAsync(0));
+	}
+
+	[Fact]
+	public async Task Push_NeedsARootAndANewView()
+	{
+		var sheet = new NativeSheet();
+		await Assert.ThrowsAsync<InvalidOperationException>(() => sheet.PushAsync(new Label()));
+
+		sheet.Content = new Label();
+		await Assert.ThrowsAsync<InvalidOperationException>(() => sheet.PushAsync(sheet.Content));
+	}
+
+	[Fact]
+	public async Task UserBack_PopsOneLevelAndRaisesPopped()
+	{
+		var sheet = new NativeSheet { Content = new Label() };
+		var first = new Label();
+		var second = new Label();
+		await sheet.PushAsync(first);
+		await sheet.PushAsync(second);
+		var popped = new List<View>();
+		sheet.Popped += (_, e) => popped.Add(e.View);
+
+		sheet.GoBack(); // Android, Windows: the handler animates the pop
+		sheet.SendUserPopped(); // iOS: UIKit already popped
+		sheet.SendUserPopped(); // nothing left to pop
+
+		Assert.Equal([second, first], popped);
+		Assert.Single(sheet.NavigationStack);
+	}
+
+	[Fact]
+	public async Task Dismissed_ReleasesPushedViews()
+	{
+		var sheet = new NativeSheet { Content = new Label(), IsOpen = true };
+		var pushed = new Label();
+		await sheet.PushAsync(pushed);
+
+		sheet.SendDismissed();
+
+		Assert.Single(sheet.NavigationStack);
+		Assert.Null(pushed.Parent);
+	}
+
+	[Fact]
+	public async Task Header_ComesFromEachViewAndFallsBackToTheSheetAtTheRoot()
+	{
+		var root = new Label();
+		var sheet = new NativeSheet
+		{
+			Title = "Sheet",
+			Subtitle = "Details",
+			Content = root,
+			ShowNativeCloseButton = true,
+			PrimaryActionText = "Done",
+			SecondaryActionText = "Cancel",
+		};
+		var pushed = new Label();
+		NativeSheet.SetTitle(pushed, "Pushed");
+		await sheet.PushAsync(pushed);
+
+		var rootHeader = sheet.HeaderAt(0);
+		Assert.Equal(("Sheet", "Details", false, true, "Done", "Cancel"),
+			(rootHeader.Title, rootHeader.Subtitle, rootHeader.ShowBack, rootHeader.ShowClose, rootHeader.PrimaryActionText, rootHeader.SecondaryActionText));
+		var pushedHeader = sheet.HeaderAt(1);
+		Assert.Equal(("Pushed", (string?)null, true, false, (string?)null, (string?)null),
+			(pushedHeader.Title, pushedHeader.Subtitle, pushedHeader.ShowBack, pushedHeader.ShowClose, pushedHeader.PrimaryActionText, pushedHeader.SecondaryActionText));
+
+		NativeSheet.SetTitle(root, "Root");
+		Assert.Equal("Root", sheet.HeaderAt(0).Title);
+	}
+
+	[Fact]
+	public void ToolbarItems_AreLogicalChildrenSplitByOrder()
+	{
+		var root = new Label();
+		var save = new ToolbarItem { Text = "Save" };
+		var delete = new ToolbarItem { Text = "Delete", Order = ToolbarItemOrder.Secondary };
+		NativeSheet.GetToolbarItems(root).Add(save);
+		NativeSheet.GetToolbarItems(root).Add(delete);
+		var sheet = new NativeSheet { Content = root };
+		sheet.BindingContext = "vm";
+
+		Assert.Same(root, save.Parent);
+		Assert.Equal("vm", save.BindingContext);
+		Assert.Equal([save], sheet.HeaderAt(0).Items);
+		Assert.Equal([delete], sheet.HeaderAt(0).OverflowItems);
+
+		NativeSheet.GetToolbarItems(root).Clear();
+		Assert.Null(save.Parent);
+		Assert.Null(delete.Parent);
 	}
 }
