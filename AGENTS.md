@@ -111,6 +111,7 @@ await ((NativeSheet)Parent).PopAsync();
 - C#: `NativeSheet.SetTitle(view, "…")`, `NativeSheet.SetSubtitle(view, "…")`, `NativeSheet.GetToolbarItems(view).Add(item)`.
 - The root view falls back to the sheet's own `Title`/`Subtitle`. `PrimaryActionText`/`SecondaryActionText` and the close button (`ShowNativeCloseButton`) only show at the root; pushed views get a native back button.
 - `ToolbarItem` `Order="Primary"`/`Default` become trailing header actions (icon if `IconImageSource` is set, else text); `Order="Secondary"` go into the native overflow menu. Android moves primary items that don't fit into the overflow menu.
+- Overflow menu items show their `IconImageSource` on iOS, Mac Catalyst and Windows; Android overflow menus are text only (Material). `ShowOverflowIcons="False"` on the sheet turns the icons off everywhere.
 - `Text`, `IconImageSource`, `IsEnabled` and `Command.CanExecute(CommandParameter)` update live. Icons take the header colour unless a `FontImageSource` sets `Color`. `AutomationId` becomes the accessibility identifier (Android content description).
 - Header items inherit the view's `BindingContext`.
 
@@ -122,7 +123,7 @@ await ((NativeSheet)Parent).PopAsync();
 | `SelectedDetent` | TwoWay; set it to animate to a detent. `null` = smallest. |
 | `IsDismissible` | `false`: swipe down, tap outside and back at the root do nothing; only the close button or `IsOpen = false` close the sheet. |
 | `PassThroughInteraction` | The page below stays interactive at every detent except `Large`. |
-| `ShowGrabber`, `IsDraggable` (Android only), `CornerRadius` (-1 = OS default), `BackgroundColor` | Appearance. |
+| `ShowGrabber`, `IsDraggable` (Android only), `CornerRadius` (-1 = OS default), `BackgroundColor`, `ShowOverflowIcons` (default `true`) | Appearance. |
 | `Opened`, `Dismissed`, `DetentChanged` | Lifecycle. `IsOpen` is already `false` in `Dismissed`. |
 | `DismissAttempted` | `CancelEventArgs`; `Cancel` starts as `!IsDismissible`. Set `Cancel = true` to keep a dismissible sheet open. |
 | `InvalidateDetents()` | Re-measure `FitContent` after size changes deep inside the content (changes of the root view are picked up automatically). |

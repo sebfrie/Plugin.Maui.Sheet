@@ -11,7 +11,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<!-- Function pointers for the iOS modal presentation redirect -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Version>1.2.0</Version>
+		<Version>1.3.0</Version>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">17.0</SupportedOSPlatformVersion>

@@ -73,6 +73,7 @@ public class NativeSheetTests
 		Assert.True(sheet.ShowGrabber);
 		Assert.True(sheet.IsPrimaryActionEnabled);
 		Assert.True(sheet.IsDraggable);
+		Assert.True(sheet.ShowOverflowIcons);
 		Assert.Equal(-1, sheet.CornerRadius);
 		Assert.Equal([SheetDetent.Medium, SheetDetent.Large], sheet.Detents);
 		Assert.True(sheet.HeaderAt(0).IsEmpty);

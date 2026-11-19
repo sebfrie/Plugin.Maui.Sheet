@@ -92,6 +92,10 @@ public partial class NativeSheet : View
 	public static readonly BindableProperty ShowNativeCloseButtonProperty =
 		BindableProperty.Create(nameof(ShowNativeCloseButton), typeof(bool), typeof(NativeSheet), false);
 
+	/// <summary>Bindable property for <see cref="ShowOverflowIcons"/>.</summary>
+	public static readonly BindableProperty ShowOverflowIconsProperty =
+		BindableProperty.Create(nameof(ShowOverflowIcons), typeof(bool), typeof(NativeSheet), true);
+
 	/// <summary>Bindable property for <see cref="Content"/>.</summary>
 	public static readonly BindableProperty ContentProperty =
 		BindableProperty.Create(nameof(Content), typeof(View), typeof(NativeSheet), null, propertyChanged: OnContentChanged);
@@ -262,6 +266,16 @@ public partial class NativeSheet : View
 	{
 		get => (bool)GetValue(ShowNativeCloseButtonProperty);
 		set => SetValue(ShowNativeCloseButtonProperty, value);
+	}
+
+	/// <summary>
+	/// Shows the <see cref="MenuItem.IconImageSource"/> of <see cref="ToolbarItemOrder.Secondary"/> toolbar items in the
+	/// header's overflow menu (iOS, Mac Catalyst, Windows). Android never does: Material overflow menus have no icons.
+	/// </summary>
+	public bool ShowOverflowIcons
+	{
+		get => (bool)GetValue(ShowOverflowIconsProperty);
+		set => SetValue(ShowOverflowIconsProperty, value);
 	}
 
 	/// <summary>Gets or sets the MAUI view shown in the sheet body, below the native header.</summary>

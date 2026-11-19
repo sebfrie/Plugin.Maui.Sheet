@@ -354,13 +354,7 @@ public partial class NativeSheetHandler
 			// A font glyph takes the header's text colour unless the source sets its own, like a template image on iOS.
 			// A TextBlock, unlike FontIcon, falls back to other fonts for glyphs the font lacks.
 			case FontImageSource { Glyph: { } glyph } font:
-				var fontManager = MauiContext!.Services.GetRequiredService<IFontManager>();
-				var text = new UIC.TextBlock
-				{
-					Text = glyph,
-					FontFamily = fontManager.GetFontFamily(Microsoft.Maui.Font.OfSize(font.FontFamily, 16)),
-					FontSize = 16,
-				};
+				var text = new UIC.TextBlock { Text = glyph, FontFamily = GlyphFont(font), FontSize = 16 };
 				if (font.Color is { } color)
 					text.Foreground = color.ToPlatform();
 				button.Content = text;
@@ -378,13 +372,15 @@ public partial class NativeSheetHandler
 		return button;
 	}
 
-	static UIC.Button OverflowButton(IReadOnlyList<ToolbarItem> items)
+	UIC.Button OverflowButton(IReadOnlyList<ToolbarItem> items)
 	{
 		var menu = new UIC.MenuFlyout();
 		foreach (var item in items)
 		{
 			var entry = new UIC.MenuFlyoutItem { Text = item.Text, IsEnabled = item.IsEnabled };
 			Describe(entry, item);
+			if (VirtualView.ShowOverflowIcons)
+				SetIcon(entry, item.IconImageSource);
 			entry.Click += (_, _) => ((IMenuItemController)item).Activate();
 			menu.Items.Add(entry);
 		}
@@ -393,6 +389,30 @@ public partial class NativeSheetHandler
 		UI.Automation.AutomationProperties.SetAutomationId(button, "NativeSheetOverflow");
 		return button;
 	}
+
+	// Like the header buttons: a glyph takes the menu's text colour unless the source sets its own.
+	void SetIcon(UIC.MenuFlyoutItem entry, ImageSource? source)
+	{
+		switch (source)
+		{
+			case FontImageSource { Glyph: { } glyph } font:
+				var icon = new UIC.FontIcon { Glyph = glyph, FontFamily = GlyphFont(font) };
+				if (font.Color is { } color)
+					icon.Foreground = color.ToPlatform();
+				entry.Icon = icon;
+				break;
+			case { } image:
+				image.LoadImage(MauiContext!, result =>
+				{
+					if (result?.Value is { } loaded)
+						entry.Icon = new UIC.ImageIcon { Source = loaded };
+				});
+				break;
+		}
+	}
+
+	UI.Media.FontFamily GlyphFont(FontImageSource font) =>
+		MauiContext!.Services.GetRequiredService<IFontManager>().GetFontFamily(Microsoft.Maui.Font.OfSize(font.FontFamily, 16));
 
 	static void Describe(UI.DependencyObject element, ToolbarItem item)
 	{

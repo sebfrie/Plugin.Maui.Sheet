@@ -383,19 +383,33 @@ public partial class NativeSheetHandler
 		return button;
 	}
 
-	static UIBarButtonItem OverflowButton(IReadOnlyList<ToolbarItem> toolbarItems)
+	UIBarButtonItem OverflowButton(IReadOnlyList<ToolbarItem> toolbarItems)
 	{
-		var actions = toolbarItems.Select(toolbarItem =>
-		{
-			var action = UIAction.Create(toolbarItem.Text ?? string.Empty, null, toolbarItem.AutomationId, _ => ((IMenuItemController)toolbarItem).Activate());
-			if (!toolbarItem.IsEnabled)
-				action.Attributes = UIMenuElementAttributes.Disabled;
-			return (UIMenuElement)action;
-		});
-		return new UIBarButtonItem(UIImage.GetSystemImage("ellipsis.circle"), UIMenu.Create([.. actions]))
+		var images = new UIImage?[toolbarItems.Count];
+		var button = new UIBarButtonItem(UIImage.GetSystemImage("ellipsis.circle"), Menu())
 		{
 			AccessibilityIdentifier = "NativeSheetOverflow",
 		};
+		// Icons load like the bar buttons' (template images take the menu's colour); a UIMenu is immutable, so it is
+		// rebuilt as each one arrives.
+		for (var i = 0; VirtualView.ShowOverflowIcons && i < toolbarItems.Count; i++)
+		{
+			var index = i;
+			toolbarItems[i].IconImageSource?.LoadImage(MauiContext!, result =>
+			{
+				images[index] = result?.Value;
+				button.Menu = Menu();
+			});
+		}
+		return button;
+
+		UIMenu Menu() => UIMenu.Create([.. toolbarItems.Select((toolbarItem, i) =>
+		{
+			var action = UIAction.Create(toolbarItem.Text ?? string.Empty, images[i], toolbarItem.AutomationId, _ => ((IMenuItemController)toolbarItem).Activate());
+			if (!toolbarItem.IsEnabled)
+				action.Attributes = UIMenuElementAttributes.Disabled;
+			return (UIMenuElement)action;
+		})]);
 	}
 
 	void OnSelectedDetentChanged()

@@ -13,10 +13,22 @@
                 <FontImageSource Glyph="✓" Size="22" />
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
-        <!-- Secondary: the native overflow menu. -->
-        <ToolbarItem Text="Duplicate" Order="Secondary" AutomationId="DuplicateEntry" Clicked="OnMenuItem" />
-        <ToolbarItem Text="Share" Order="Secondary" AutomationId="ShareEntry" Clicked="OnMenuItem" />
-        <ToolbarItem Text="Delete" Order="Secondary" AutomationId="DeleteEntry" Clicked="OnMenuItem" />
+        <!-- Secondary: the native overflow menu, with icons on iOS and Windows (ShowOverflowIcons; Android menus have none). -->
+        <ToolbarItem Text="Duplicate" Order="Secondary" AutomationId="DuplicateEntry" Clicked="OnMenuItem">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="❏" Size="20" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem Text="Share" Order="Secondary" AutomationId="ShareEntry" Clicked="OnMenuItem">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="↗" Size="20" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem Text="Delete" Order="Secondary" AutomationId="DeleteEntry" Clicked="OnMenuItem">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="✕" Size="20" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
     </sheet:NativeSheet.ToolbarItems>
 
     <ScrollView>

@@ -39,6 +39,7 @@ public partial class NativeSheetHandler : ViewHandler<NativeSheet, PlatformView>
 		[nameof(NativeSheet.PrimaryActionText)] = (h, _) => h.UpdateHeader(),
 		[nameof(NativeSheet.SecondaryActionText)] = (h, _) => h.UpdateHeader(),
 		[nameof(NativeSheet.ShowNativeCloseButton)] = (h, _) => h.UpdateHeader(),
+		[nameof(NativeSheet.ShowOverflowIcons)] = (h, _) => h.UpdateHeader(),
 		[nameof(NativeSheet.IsPrimaryActionEnabled)] = (h, _) => h.UpdateHeader(),
 		[nameof(NativeSheet.IsOpen)] = MapIsOpen,
 	};

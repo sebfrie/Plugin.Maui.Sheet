@@ -103,6 +103,7 @@ xmlns:sheet="clr-namespace:Plugin.Maui.Sheet;assembly=Plugin.Maui.Sheet"
 | `PrimaryActionText`, `PrimaryActionCommand`, `PrimaryActionCommandParameter`, `IsPrimaryActionEnabled` | | Trailing confirm action (iOS *Done* style). |
 | `SecondaryActionText`, `SecondaryActionCommand`, `SecondaryActionCommandParameter` | | Leading cancel action. |
 | `ShowNativeCloseButton` | `false` | Native close (X) button at the leading edge. Always closes the sheet. |
+| `ShowOverflowIcons` | `true` | Shows the icons of `Secondary` [toolbar items](#header-per-view) in the overflow menu (iOS, Mac Catalyst, Windows; Material overflow menus on Android have none). |
 | `Content` | | The MAUI view shown below the header: the root of the [navigation stack](#navigate-inside-a-sheet). |
 | `ContentTemplate` | | Used when `Content` is `null`: the view is created each time the sheet opens and released when it closes, so closed sheets cost nothing. |
 
@@ -209,10 +210,10 @@ The header follows each item's `Text`, `IconImageSource` (including `FontImageSo
 | | iOS / Mac Catalyst | Android | Windows |
 |---|---|---|---|
 | `Order="Primary"` / `Default` | Trailing `UIBarButtonItem`: icon, else text | Toolbar action: icon, else text; moves into the overflow menu when it does not fit | Header button: icon, else text |
-| `Order="Secondary"` | `ellipsis.circle` button with a `UIMenu` | The toolbar's overflow menu (⋮) | `…` button with a `MenuFlyout` |
+| `Order="Secondary"` | `ellipsis.circle` button with a `UIMenu`; items show their icon | The toolbar's overflow menu (⋮), text only | `…` button with a `MenuFlyout`; items show their icon |
 | Leading | Close (X) at the root with `ShowNativeCloseButton`; back chevron and edge swipe on pushed views | Close at the root; back arrow on pushed views | Close at the root; back button on pushed views |
 
-Icons take the header's color (like template images on iOS) unless a `FontImageSource` sets its own `Color`.
+Icons take the header's color (like template images on iOS) unless a `FontImageSource` sets its own `Color`. Set `ShowOverflowIcons="False"` on the sheet for text-only overflow menus everywhere.
 
 ### Alerts, pickers and modal pages from inside a sheet
 
