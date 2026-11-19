@@ -1,7 +1,8 @@
 name: Sample screenshots
 
 # Runs the sample on an Android emulator, an iOS simulator and Windows, screenshots each sheet
-# and commits the images to screenshots/ on the branch it was started on. Check screenshots (alerts,
+# and commits the images to screenshots/ on the branch it was started on. A platform whose screenshots
+# failed keeps its previous images. Check screenshots (alerts,
 # modal pages and pickers opened from inside a sheet) go to screenshots/checks/, without thumbnails.
 on:
   workflow_dispatch:
@@ -45,13 +46,11 @@ jobs:
           disable-animations: true
           script: bash .github/scripts/screenshots-android.sh
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: screenshots-android
           path: screenshots/android-*.png
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: checks-android
           path: checks/android-*.png
@@ -83,13 +82,11 @@ jobs:
       - name: Screenshots
         run: bash .github/scripts/screenshots-ios.sh
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: screenshots-ios
           path: screenshots/ios-*.png
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: checks-ios
           path: checks/ios-*.png
@@ -111,13 +108,11 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/screenshots-windows.ps1
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: screenshots-windows
           path: screenshots/windows-*.png
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: checks-windows
           path: checks/windows-*.png

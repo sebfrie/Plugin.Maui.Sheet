@@ -12,11 +12,21 @@ adb shell settings put global sysui_demo_allowed 1
 adb shell am broadcast -a com.android.systemui.demo -e command enter
 adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941
 adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
+adb shell settings put global hide_error_dialogs 1
 
 launch() {
 	adb shell am force-stop "$pkg"
 	adb shell am start -W -n "$pkg/$pkg.MainActivity" --es SAMPLE_SHEET "$1"
 	sleep 15
+	dismiss_anr
+}
+
+# A slow CI emulator sometimes reports "Pixel Launcher isn't responding"; wait it out rather than screenshot it.
+dismiss_anr() {
+	adb shell uiautomator dump /sdcard/ui.xml > /dev/null
+	if adb exec-out cat /sdcard/ui.xml | grep -q "t responding"; then
+		tap Wait
+	fi
 }
 
 # Taps the element with the given content description or text.

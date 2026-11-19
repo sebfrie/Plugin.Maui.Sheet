@@ -49,11 +49,12 @@ for check in nav-alert nav-modal nav-date; do
 	shot "checks/ios-$check.png"
 done
 
-# simctl cannot tap; the overflow menu needs idb (installed best-effort by the workflow).
+# simctl cannot tap; the overflow menu needs idb (installed best-effort by the workflow). idb finds the button
+# through accessibility when it can, else taps where it sits on an iPhone 18 Pro (points, top right of the sheet).
 if command -v idb > /dev/null; then
 	launch nav
 	idb connect "$udid" || true
-	point=$(idb ui describe-all --udid "$udid" --json | python3 -c '
+	point=$(idb ui describe-all --udid "$udid" --json 2> /dev/null | python3 -c '
 import json, sys
 for e in json.load(sys.stdin):
     if e.get("AXUniqueId") == "NativeSheetOverflow" or e.get("AXLabel") == "More":
@@ -61,9 +62,11 @@ for e in json.load(sys.stdin):
         print(f["x"] + f["width"] / 2, f["y"] + f["height"] / 2)
         break
 else:
-    sys.exit("overflow button not found")') && {
-		idb ui tap --udid "$udid" $point
+    sys.exit(1)' 2> /dev/null) || point="362 100"
+	if idb ui tap --udid "$udid" $point; then
 		sleep 3
 		shot screenshots/ios-nav-overflow.png
-	} || echo "Skipped the overflow screenshot."
+	else
+		echo "Skipped the overflow screenshot."
+	fi
 fi
