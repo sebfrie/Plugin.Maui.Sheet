@@ -20,7 +20,7 @@ public partial class NativeSheet
 	public event EventHandler<SheetPoppedEventArgs>? Popped;
 
 	/// <summary>Gets the views in the sheet, root (<see cref="Content"/>) first. The last one is shown.</summary>
-	public IReadOnlyList<View> NavigationStack => PresentedContent is { } root ? [root, .. pushedViews] : [.. pushedViews];
+	public IReadOnlyList<View> NavigationStack => PresentedContent is { } root ? (View[])[root, .. pushedViews] : [.. pushedViews];
 
 	/// <summary>Gets the header title of a view in the <see cref="NavigationStack"/>.</summary>
 	public static string? GetTitle(BindableObject view) => (string?)view.GetValue(TitleProperty);
@@ -103,7 +103,7 @@ public partial class NativeSheet
 				return;
 			var view = pushedViews[^1];
 			pushedViews.RemoveAt(pushedViews.Count - 1);
-			await Navigate(null, [view], true);
+			await Navigate(null, (View[])[view], true);
 			Release(view);
 			Popped?.Invoke(this, new SheetPoppedEventArgs(view));
 		}
@@ -139,8 +139,8 @@ public partial class NativeSheet
 			SecondaryActionText: root ? SecondaryActionText : null,
 			PrimaryActionText: root ? PrimaryActionText : null,
 			IsPrimaryActionEnabled,
-			[.. items.Where(i => i.Order != ToolbarItemOrder.Secondary)],
-			[.. items.Where(i => i.Order == ToolbarItemOrder.Secondary)]);
+			items.Where(i => i.Order != ToolbarItemOrder.Secondary).ToArray(),
+			items.Where(i => i.Order == ToolbarItemOrder.Secondary).ToArray());
 	}
 
 	Task Navigate(View? pushed, IReadOnlyList<View> popped, bool animated)

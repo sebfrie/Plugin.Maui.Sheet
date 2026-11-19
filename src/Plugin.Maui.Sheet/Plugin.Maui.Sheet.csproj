@@ -70,6 +70,8 @@
 	<ItemGroup>
 		<None Include="..\..\nuget.png" PackagePath="icon.png" Pack="true" />
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
+		<!-- Guidance for AI coding agents, next to the README in the package -->
+		<None Include="..\..\AGENTS.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

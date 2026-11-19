@@ -55,6 +55,8 @@ dotnet add package Plugin.Maui.Sheet
 
 These are the oldest OS versions the package runs on. The frameworks NuGet lists (e.g. `net11.0-android37.0`) name the platform SDK the package is compiled against, the .NET 11 default, which any `net11.0-android`/`-ios`/`-windows` app matches; they are not minimums.
 
+**AI coding agents**: [AGENTS.md](https://github.com/sebfrie/Plugin.Maui.Sheet/blob/main/AGENTS.md) (also in the package) sums up the API, the in-sheet navigation rules and common mistakes.
+
 ## Setup
 
 ```csharp
