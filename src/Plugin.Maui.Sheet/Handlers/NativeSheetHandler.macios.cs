@@ -390,14 +390,15 @@ public partial class NativeSheetHandler
 		{
 			AccessibilityIdentifier = "NativeSheetOverflow",
 		};
-		// Icons load like the bar buttons' (template images take the menu's colour); a UIMenu is immutable, so it is
-		// rebuilt as each one arrives.
+		// A UIMenu is immutable, so it is rebuilt as each icon arrives. Bar buttons draw Automatic images as templates
+		// but menus draw them as they are (MAUI's glyphs are white): make them templates, as on the bar.
 		for (var i = 0; VirtualView.ShowOverflowIcons && i < toolbarItems.Count; i++)
 		{
 			var index = i;
 			toolbarItems[i].IconImageSource?.LoadImage(MauiContext!, result =>
 			{
-				images[index] = result?.Value;
+				var image = result?.Value;
+				images[index] = image?.RenderingMode == UIImageRenderingMode.Automatic ? image.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate) : image;
 				button.Menu = Menu();
 			});
 		}
