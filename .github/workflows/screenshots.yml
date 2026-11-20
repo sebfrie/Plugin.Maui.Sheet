@@ -69,10 +69,10 @@ jobs:
         run: dotnet workload restore samples/Plugin.Maui.Sheet.Sample.sln
       - name: Select the Xcode .NET for iOS was built for
         # .NET for iOS requires the exact Xcode its SDK pack names (Microsoft.iOS.Sdk.net11.0_27.2 → Xcode 27.2);
-        # the image's newest Xcode can be newer. Fails if the image no longer has that version.
+        # the image's newest Xcode can be newer. Betas are skipped. Fails if the image no longer has that version.
         run: |
           want=$(ls -d "$DOTNET_ROOT"/packs/Microsoft.iOS.Sdk.net*_* | sed 's/.*_//' | sort -V | tail -1)
-          xcode=$(ls -d /Applications/Xcode_"$want"*.app | sort -V | tail -1)
+          xcode=$(ls -d /Applications/Xcode_"$want"*.app | grep -v beta | sort -V | tail -1)
           echo ".NET for iOS $want -> $xcode"
           sudo xcode-select -s "$xcode"
       - name: Build sample
