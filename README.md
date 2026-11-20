@@ -3,7 +3,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Plugin.Maui.Sheet.svg?label=NuGet)](https://www.nuget.org/packages/Plugin.Maui.Sheet/)
 
-`Plugin.Maui.Sheet` shows **truly native bottom sheets** in .NET MAUI 11. Both the sheet container and its header are the platform's own controls; no MAUI overlay or MAUI buttons are drawn:
+Shows **native bottom sheets** in .NET MAUI 11 with **native in-sheet navigation**. Both the sheet container and its header are the platform's own controls; no MAUI overlay or MAUI buttons are drawn:
 
 | | iOS / Mac Catalyst | Android | Windows |
 |---|---|---|---|
