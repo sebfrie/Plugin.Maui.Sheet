@@ -12,6 +12,17 @@ Shows **native bottom sheets** in .NET MAUI 11 with **native in-sheet navigation
 | Grabber | `PrefersGrabberVisible` | `BottomSheetDragHandleView` | – |
 | [Navigation](#navigate-inside-a-sheet) | Push/pop in the sheet's `UINavigationController`: back chevron, edge swipe | Material shared-axis transition, toolbar back arrow, system back | Slide transition, back button, Esc |
 
+**Contents**
+
+- [Screenshots](#screenshots)
+- [Install](#install)
+- [Setup](#setup)
+- [Use it in XAML](#use-it-in-xaml): [Properties](#properties), [Events](#events)
+- [Use it from a view model](#use-it-from-a-view-model)
+- [Navigate inside a sheet](#navigate-inside-a-sheet): [Header per view](#header-per-view), [Alerts, pickers and modal pages](#alerts-pickers-and-modal-pages-from-inside-a-sheet)
+- [Platform notes](#platform-notes)
+- [Sample](#sample)
+
 ## Screenshots
 
 The [sample app](samples/Plugin.Maui.Sheet.Sample), captured on an Android emulator, an iOS simulator and Windows by the [screenshot workflow](.github/workflows/screenshots.yml). Select a screenshot for the full-size image.
