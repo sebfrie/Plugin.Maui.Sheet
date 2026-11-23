@@ -10,6 +10,7 @@ public partial class NativeSheetHandler
 	// .NET binds these properties to an enum that only knows Medium/Large; KVC also accepts custom identifiers.
 	static readonly NSString SelectedDetentKey = new("selectedDetentIdentifier");
 	static readonly NSString LargestUndimmedDetentKey = new("largestUndimmedDetentIdentifier");
+	static readonly ToolbarItem[] NoItems = [];
 
 	SheetNavigationController? navigation;
 	SheetDelegate? sheetDelegate;
@@ -327,7 +328,15 @@ public partial class NativeSheetHandler
 		if (navigation is null || VirtualView is not { } sheet)
 			return;
 		for (var i = 0; i < levels.Count; i++)
-			ApplyHeader(levels[i].NavigationItem, sheet.HeaderAt(i));
+		{
+			var header = sheet.HeaderAt(i);
+			// Rebuilt bar buttons, e.g. the root's while a push slides it away, flash in the tint colour: keep unchanged ones.
+			var state = HeaderState(header);
+			if (levels[i].AppliedHeader?.SequenceEqual(state) == true)
+				continue;
+			levels[i].AppliedHeader = state;
+			ApplyHeader(levels[i].NavigationItem, header);
+		}
 		var hidden = sheet.HeaderAt(levels.Count - 1).IsEmpty;
 		if (navigation.NavigationBarHidden != hidden)
 		{
@@ -335,6 +344,14 @@ public partial class NativeSheetHandler
 			InvalidateDetentsCore();
 		}
 	}
+
+	// Everything ApplyHeader reads, as values: toolbar items change in place.
+	object[] HeaderState(SheetHeader header) =>
+	[
+		header with { Items = NoItems, OverflowItems = NoItems },
+		VirtualView.ShowOverflowIcons,
+		.. header.Items.Concat(header.OverflowItems).Select(i => (object)(i, i.Order, i.Text, i.IsEnabled, i.IconImageSource, i.AutomationId)),
+	];
 
 	void ApplyHeader(UINavigationItem item, SheetHeader header)
 	{
@@ -443,6 +460,9 @@ public partial class NativeSheetHandler
 		}
 
 		public View? Content { get; private set; }
+
+		// HeaderState of the header on this level's navigationItem.
+		public object[]? AppliedHeader { get; set; }
 
 		// Shows a view (null: none); its platform view may only have one superview.
 		public void Host(View? content)
