@@ -110,7 +110,8 @@ public partial class NativeSheetHandler
 			HorizontalAlignment = UI.HorizontalAlignment.Center,
 			VerticalAlignment = UI.VerticalAlignment.Center,
 		};
-		backdrop = new UIC.Border { Background = ThemeResource<UI.Media.Brush>("SmokeFillColorDefaultBrush") };
+		// 50% black: darker than WinUI's SmokeFillColorDefaultBrush (30%).
+		backdrop = new UIC.Border { Background = new UI.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x80, 0, 0, 0)) };
 		backdrop.Tapped += OnBackdropTapped;
 		// No background on the host itself: with the backdrop collapsed (pass-through), clicks reach the page.
 		host = new UIC.Grid { Children = { backdrop, card } };
