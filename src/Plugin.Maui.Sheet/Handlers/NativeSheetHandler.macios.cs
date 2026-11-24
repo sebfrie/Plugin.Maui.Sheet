@@ -403,7 +403,7 @@ public partial class NativeSheetHandler
 	UIBarButtonItem OverflowButton(IReadOnlyList<ToolbarItem> toolbarItems)
 	{
 		var images = new UIImage?[toolbarItems.Count];
-		var button = new UIBarButtonItem(UIImage.GetSystemImage("ellipsis.circle"), Menu())
+		var button = new UIBarButtonItem(UIImage.GetSystemImage("ellipsis"), Menu())
 		{
 			AccessibilityIdentifier = "NativeSheetOverflow",
 		};
