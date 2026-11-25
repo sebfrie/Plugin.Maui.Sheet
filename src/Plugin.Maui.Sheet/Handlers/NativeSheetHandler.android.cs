@@ -460,8 +460,7 @@ public partial class NativeSheetHandler
 			var menuItem = menu.Add(0, FirstToolbarItemId + i, 2 + i, item.Text ?? string.Empty)!;
 			menuItem.SetShowAsAction(item.Order == ToolbarItemOrder.Secondary ? ShowAsAction.Never : ShowAsAction.IfRoom);
 			menuItem.SetEnabled(item.IsEnabled);
-			if (!string.IsNullOrEmpty(item.AutomationId))
-				AndroidX.Core.View.MenuItemCompat.SetContentDescription(menuItem, item.AutomationId);
+			// No content description: TalkBack then reads the item's title (its Text), also for icon-only items.
 			if (item.Order == ToolbarItemOrder.Secondary || item.IconImageSource is not { } icon)
 				continue;
 			icon.LoadImage(MauiContext!, result => menuItem.SetIcon(result?.Value));
