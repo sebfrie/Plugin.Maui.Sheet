@@ -64,13 +64,17 @@ dotnet add package Plugin.Maui.Sheet
 | Android | API 24 |
 | Windows | 10 version 1809 (10.0.17763) |
 
-These are the oldest OS versions the package runs on. The frameworks NuGet lists (e.g. `net11.0-android37.0`) name the platform SDK the package is compiled against, the .NET 11 default, which any `net11.0-android`/`-ios`/`-windows` app matches; they are not minimums.
+Requires .NET 11 to compile.
 
 **AI coding agents**: [AGENTS.md](https://github.com/sebfrie/Plugin.Maui.Sheet/blob/main/AGENTS.md) (also in the package) sums up the API, the in-sheet navigation rules and common mistakes.
 
 ## Setup
 
+Add one line to the builder in your `MauiProgram.cs`:
+
 ```csharp
+using Plugin.Maui.Sheet;
+
 builder
     .UseMauiApp<App>()
     .UseNativeSheet(); // registers the handler and INativeSheetService
