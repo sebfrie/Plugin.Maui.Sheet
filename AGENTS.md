@@ -112,7 +112,7 @@ await ((NativeSheet)Parent).PopAsync();
 - The root view falls back to the sheet's own `Title`/`Subtitle`. `PrimaryActionText`/`SecondaryActionText` and the close button (`ShowNativeCloseButton`) only show at the root; pushed views get a native back button.
 - `ToolbarItem` `Order="Primary"`/`Default` become trailing header actions (icon if `IconImageSource` is set, else text); `Order="Secondary"` go into the native overflow menu. Android moves primary items that don't fit into the overflow menu.
 - Overflow menu items show their `IconImageSource` on iOS, Mac Catalyst and Windows; Android overflow menus are text only (Material). `ShowOverflowIcons="False"` on the sheet turns the icons off everywhere.
-- `Text`, `IconImageSource`, `IsEnabled` and `Command.CanExecute(CommandParameter)` update live. Icons take the header colour unless a `FontImageSource` sets `Color`. `AutomationId` becomes the accessibility identifier (Android content description).
+- `Text`, `IconImageSource`, `IsEnabled` and `Command.CanExecute(CommandParameter)` update live. Icons take the header colour unless a `FontImageSource` sets `Color`. `AutomationId` becomes the accessibility identifier on iOS, Mac Catalyst and Windows; on Android the item's `Text` is the accessibility label (content description) and `AutomationId` is not used.
 - Header items inherit the view's `BindingContext`.
 
 ## Properties and events

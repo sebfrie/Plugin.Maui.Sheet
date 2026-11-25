@@ -220,7 +220,7 @@ Each view brings its own header through attached properties. The root view falls
 </ContentView>
 ```
 
-The header follows each item's `Text`, `IconImageSource` (including `FontImageSource`), `IsEnabled` and `Command.CanExecute(CommandParameter)` while it is shown; `AutomationId` becomes the native accessibility identifier (Android: content description). Toolbar items inherit their view's binding context. In C#: `NativeSheet.SetTitle(view, "…")`, `NativeSheet.GetToolbarItems(view).Add(item)`.
+The header follows each item's `Text`, `IconImageSource` (including `FontImageSource`), `IsEnabled` and `Command.CanExecute(CommandParameter)` while it is shown; `AutomationId` becomes the native accessibility identifier on iOS, Mac Catalyst and Windows; on Android the item's `Text` is the accessibility label (content description) read by TalkBack. Toolbar items inherit their view's binding context. In C#: `NativeSheet.SetTitle(view, "…")`, `NativeSheet.GetToolbarItems(view).Add(item)`.
 
 | | iOS / Mac Catalyst | Android | Windows |
 |---|---|---|---|
